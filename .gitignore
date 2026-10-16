@@ -1,0 +1,5 @@
+node_modules/
+.wrangler/
+.impeccable/
+deploy/worker/out/
+job-tracker.html

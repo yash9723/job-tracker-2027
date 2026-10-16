@@ -1,0 +1,11 @@
+# Long cache for the libraries and the land map (they change only with a new file name); short for the globe code.
+/motion.js
+  Cache-Control: public, max-age=604800
+/gsap.min.js
+  Cache-Control: public, max-age=604800
+/Flip.min.js
+  Cache-Control: public, max-age=604800
+/land.js
+  Cache-Control: public, max-age=604800
+/globe.js
+  Cache-Control: public, max-age=3600

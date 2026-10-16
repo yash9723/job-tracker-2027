@@ -1,0 +1,1479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f1f4f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d141c" media="(prefers-color-scheme: dark)">
+<meta name="description" content="Frontend, full stack and Flutter openings for the 2027 batch in Tier 1 Indian cities, refreshed every 6 hours.">
+<title>2027 Job Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script>
+// Start loading the listings right away, in parallel with the scripts and fonts.
+window.__jobsReq = fetch("/api/jobs", { cache: "no-cache" }).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status)));
+window.__jobsReq.catch(() => {});
+// Apply the saved theme before first paint so there is no flash.
+try { const t = (JSON.parse(localStorage.getItem("jt-prefs")) || {}).theme; if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: hero with the interactive globe, a sticky glass filter bar, then either a card list or a status board. */
+:root {
+  color-scheme: light;
+  --bg: #f1f4f8;
+  --surface: #ffffff;
+  --fg: #132033;
+  --muted: #566579;
+  --line: #d9e0e8;
+  --accent: #0a6a62;
+  --accent-fg: #ffffff;
+  --accent-soft: #dff1ee;
+  --warn: #b3261e;
+  --warn-bg: #fde8e5;
+  --glass: rgba(241, 244, 248, .78);
+  --glass-bg: rgba(255, 255, 255, .55); --glass-strong: rgba(255, 255, 255, .74);
+  --glass-border: rgba(255, 255, 255, .8); --glass-hi: rgba(255, 255, 255, .9); --glass-shadow: rgba(19, 32, 51, .32);
+  --blob2: #3b82f6; --blob3: #f59e0b;
+  --s-apply-bg: #e8edf3;  --s-apply-fg: #3d4b5e;
+  --s-applied-bg: #dce8fb; --s-applied-fg: #1d4a96;
+  --s-int-bg: #fdf0cc;    --s-int-fg: #7a5200;
+  --s-offer-bg: #d8f2de;  --s-offer-fg: #17692f;
+  --s-rej-bg: #ebe9ec;    --s-rej-fg: #6b6672;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d141c; --surface: #141d28; --fg: #e5ebf2; --muted: #93a2b5; --line: #243142;
+    --accent: #4fd1c0; --accent-fg: #06201c; --accent-soft: #14352f;
+    --warn: #ff9082; --warn-bg: #3a1c19; --glass: rgba(13, 20, 28, .78);
+    --glass-bg: rgba(22, 32, 45, .5); --glass-strong: rgba(16, 24, 34, .74);
+    --glass-border: rgba(255, 255, 255, .1); --glass-hi: rgba(255, 255, 255, .07); --glass-shadow: rgba(0, 0, 0, .7);
+    --blob2: #3b82f6; --blob3: #f59e0b;
+    --s-apply-bg: #222d3b; --s-apply-fg: #b4c2d4;
+    --s-applied-bg: #1b3358; --s-applied-fg: #a9c8ff;
+    --s-int-bg: #46350d; --s-int-fg: #ffd772;
+    --s-offer-bg: #17402a; --s-offer-fg: #8ee5a9;
+    --s-rej-bg: #2a2830; --s-rej-fg: #a29cac;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d141c; --surface: #141d28; --fg: #e5ebf2; --muted: #93a2b5; --line: #243142;
+  --accent: #4fd1c0; --accent-fg: #06201c; --accent-soft: #14352f;
+  --warn: #ff9082; --warn-bg: #3a1c19; --glass: rgba(13, 20, 28, .78);
+    --glass-bg: rgba(22, 32, 45, .5); --glass-strong: rgba(16, 24, 34, .74);
+    --glass-border: rgba(255, 255, 255, .1); --glass-hi: rgba(255, 255, 255, .07); --glass-shadow: rgba(0, 0, 0, .7);
+    --blob2: #3b82f6; --blob3: #f59e0b;
+  --s-apply-bg: #222d3b; --s-apply-fg: #b4c2d4;
+  --s-applied-bg: #1b3358; --s-applied-fg: #a9c8ff;
+  --s-int-bg: #46350d; --s-int-fg: #ffd772;
+  --s-offer-bg: #17402a; --s-offer-fg: #8ee5a9;
+  --s-rej-bg: #2a2830; --s-rej-fg: #a29cac;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.45;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(900px 520px at 88% -8%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 62%),
+              radial-gradient(700px 480px at -10% 30%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 60%); }
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+button { font: inherit; }
+:is(button, select, input, a):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---- hero ---- */
+.hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: center; }
+.hero-copy { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.eyebrow { margin: 0; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(34px, 6vw, 56px); line-height: 1.02; letter-spacing: -.015em; text-wrap: balance; perspective: 700px; }
+.w { display: inline-block; transform-origin: 50% 100%; animation: wordin .9s var(--ease) backwards; }
+.w + .w { animation-delay: .14s; }
+.sub { margin: 0; color: var(--muted); max-width: 60ch; }
+.sub b { color: var(--fg); font-weight: 600; }
+.hero-copy > :not(h1) { animation: fadeup .7s .3s var(--ease) backwards; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; padding: 0; list-style: none; }
+.stats li { display: flex; align-items: baseline; gap: 8px; }
+.stats .n { font-family: var(--mono); font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.stats .l { color: var(--muted); font-size: 13px; }
+.stats .urgent .n { color: var(--warn); }
+.globe { position: relative; justify-self: end; width: 100%; max-width: 420px; aspect-ratio: 1; animation: fadeup 1s .1s var(--ease) backwards; }
+.gwrap { position: absolute; inset: 0; }
+.gwrap::before { content: ""; position: absolute; inset: 8%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 26%, transparent), transparent 68%); filter: blur(22px); }
+#globe { position: relative; display: block; width: 100%; height: 100%; }
+.gtip { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 10px 24px -12px rgba(0, 0, 0, .5); font-size: 12px; white-space: nowrap; }
+.gtip b { font-size: 13px; }
+.gtip span { color: var(--muted); }
+.gtip[hidden] { display: none; }
+.ghint { position: absolute; left: 0; right: 0; bottom: -2px; margin: 0; text-align: center; font-size: 12px; color: var(--muted); }
+.progress { position: fixed; left: 0; right: 0; top: 0; height: 3px; background: var(--accent); transform: scaleX(0); transform-origin: 0 50%; z-index: 5; }
+
+/* ---- filter bar ---- */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 3; margin-inline: -12px; padding: 12px; border-radius: 14px; border: 1px solid var(--line);
+  background: var(--glass); -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3);
+  display: flex; flex-direction: column; gap: 10px; box-shadow: 0 10px 30px -22px rgba(0, 0, 0, .5); }
+.panel { display: flex; flex-direction: column; gap: 10px; margin-top: -6px; }
+.row1 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row1 > * { min-width: 0; }
+.field { position: relative; flex: 1 1 240px; }
+.field input { width: 100%; padding-right: 34px; }
+.field kbd { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font: 12px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; pointer-events: none; }
+input[type="search"], select, .note { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; }
+input[type="search"]::-webkit-search-cancel-button { display: none; }
+.seg { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.seg button { border: 0; background: none; color: var(--muted); padding: 6px 14px; border-radius: 7px; cursor: pointer; font-weight: 500; transition: background .2s, color .2s; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.ibtn { border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 8px; padding: 9px 12px; cursor: pointer; transition: border-color .2s, transform .15s; }
+.ibtn:hover { border-color: var(--accent); }
+.ibtn:active { transform: scale(.96); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-right: 2px; min-width: 34px; }
+.chip { font-size: 13px; color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; cursor: pointer; transition: background .2s, color .2s, border-color .2s, transform .15s; }
+.chip small { margin-left: 5px; font: 11px var(--mono); opacity: .7; }
+.chip:hover { transform: translateY(-1px); border-color: var(--accent); }
+.chip:active { transform: scale(.96); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.payf { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-left: 6px; }
+.payf input { accent-color: var(--accent); width: 130px; }
+.payf output { font-family: var(--mono); color: var(--fg); min-width: 52px; }
+.sumrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.linkbtn { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 2px 0; font-weight: 600; }
+.linkbtn[hidden] { display: none; }
+
+/* ---- cards ---- */
+.list { display: flex; flex-direction: column; gap: 10px; perspective: 1400px; }
+.job { display: block; }
+.card { position: relative; display: grid; grid-template-columns: 44px minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.4fr) auto auto; gap: 8px 16px; align-items: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; transform-style: preserve-3d;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--press, 1)); transition: transform .4s var(--ease), box-shadow .3s, border-color .2s; }
+.card.tilting { transition: transform .08s linear, box-shadow .3s, border-color .2s; }
+.card::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
+  background: radial-gradient(300px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent) 13%, transparent), transparent 70%); }
+.card:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); box-shadow: 0 18px 36px -22px color-mix(in srgb, var(--fg) 60%, transparent); }
+.card:hover::before { opacity: 1; }
+.job.closing .card { border-color: var(--warn); }
+.job.flash .card { animation: flash .9s ease-out; }
+.job.dragging { opacity: .45; }
+.av { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font: 700 18px var(--display); color: #fff; transform: translateZ(16px);
+  background: linear-gradient(135deg, hsl(var(--h) 62% 44%), hsl(calc(var(--h) + 42) 62% 34%)); box-shadow: 0 8px 16px -10px hsl(var(--h) 62% 30%); }
+.av.logo { background: #fff; border: 1px solid var(--line); box-shadow: 0 6px 14px -8px rgba(0, 0, 0, .45); }
+.av.logo .ini { display: none; }
+.av img { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: inherit; padding: 6px; }
+.tag.mnc { color: var(--s-int-fg); background: var(--s-int-bg); border-color: transparent; font-weight: 700; }
+.tag.cat { color: var(--s-applied-fg); background: var(--s-applied-bg); border-color: transparent; font-weight: 600; }
+.who { min-width: 0; }
+.co { font-weight: 600; }
+.role { color: var(--muted); font-size: 14px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tag { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; line-height: 1.2; }
+.tag.new { color: var(--accent); background: var(--accent-soft); border-color: transparent; font-weight: 600; }
+.tag.dl { color: var(--warn); background: var(--warn-bg); border-color: transparent; font-weight: 600; }
+.city { font-size: 14px; }
+.pay { font-family: var(--mono); font-size: 13px; }
+.pay small { display: block; color: var(--muted); font-family: var(--body); font-size: 12px; margin-top: 2px; }
+.meter { height: 4px; border-radius: 4px; background: var(--line); margin-top: 7px; overflow: hidden; }
+.meter i { display: block; height: 100%; width: var(--w); border-radius: 4px; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 45%, #fff)); transform-origin: 0 50%; animation: grow .9s var(--ease) backwards; }
+.ctl { display: flex; gap: 6px; align-items: center; }
+.st { padding: 7px 10px; font-size: 13px; font-weight: 500; border: 0; border-radius: 8px; }
+.job[data-s="To apply"] .st { background: var(--s-apply-bg); color: var(--s-apply-fg); }
+.job[data-s="Applied"] .st { background: var(--s-applied-bg); color: var(--s-applied-fg); }
+.job[data-s="Interview"] .st { background: var(--s-int-bg); color: var(--s-int-fg); }
+.job[data-s="Offer"] .st { background: var(--s-offer-bg); color: var(--s-offer-fg); }
+.job[data-s="Rejected"] .st { background: var(--s-rej-bg); color: var(--s-rej-fg); }
+.job[data-s="Rejected"] .co, .job[data-s="Rejected"] .role { text-decoration: line-through; text-decoration-color: var(--muted); }
+.notebtn { color: var(--muted); background: none; border: 1px dashed var(--line); border-radius: 8px; padding: 7px 12px; font-size: 13px; cursor: pointer; }
+.notebtn.has { color: var(--accent); border-color: var(--accent); border-style: solid; }
+.go { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; font-size: 14px; color: var(--accent-fg); background: var(--accent); text-decoration: none; padding: 9px 15px; border-radius: 8px; white-space: nowrap; transition: box-shadow .2s, filter .2s; }
+.go:hover { box-shadow: 0 10px 20px -10px var(--accent); filter: brightness(1.06); }
+.go .ar { display: inline-block; transition: transform .2s; }
+.go:hover .ar { transform: translate(2px, -2px); }
+.note { grid-column: 1 / -1; width: 100%; }
+.more { align-self: center; margin-top: 6px; padding: 11px 22px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; font-weight: 500; transition: border-color .2s, transform .15s; }
+.more:hover { border-color: var(--accent); transform: translateY(-1px); }
+.more small { color: var(--muted); margin-left: 6px; }
+.empty { color: var(--muted); padding: 40px 0; text-align: center; }
+.skel { height: 78px; border-radius: 12px; border: 1px solid var(--line); background: linear-gradient(90deg, var(--surface) 25%, color-mix(in srgb, var(--line) 60%, var(--surface)) 50%, var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
+
+/* ---- board ---- */
+.board { display: grid; grid-template-columns: repeat(5, minmax(250px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 12px; scroll-snap-type: x proximity; align-items: start; }
+.col { scroll-snap-align: start; display: flex; flex-direction: column; gap: 8px; padding: 10px; min-height: 160px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--surface) 55%, transparent); transition: border-color .2s, background .2s; perspective: 1200px; }
+.col.over { border-color: var(--accent); background: var(--accent-soft); }
+.col h3 { margin: 2px 4px 4px; font: 600 13px var(--body); text-transform: uppercase; letter-spacing: .06em; display: flex; justify-content: space-between; color: var(--muted); }
+.col h3 span { font-family: var(--mono); color: var(--fg); }
+.colempty { margin: 18px 0; text-align: center; font-size: 13px; color: var(--muted); }
+.colmore { border: 0; background: none; color: var(--accent); font-weight: 600; cursor: pointer; padding: 6px; }
+.board .job[draggable="true"] { cursor: grab; }
+.compact { grid-template-columns: 36px minmax(0, 1fr); padding: 10px 12px; gap: 6px 10px; }
+.compact .av { width: 36px; height: 36px; font-size: 15px; border-radius: 10px; }
+.compact .city, .compact .pay, .compact .ctl, .compact .go { grid-column: 1 / -1; }
+.compact .go { justify-self: start; }
+
+/* ---- toast ---- */
+.toast { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 14px; padding: 11px 16px; max-width: calc(100vw - 32px);
+  border-radius: 12px; background: var(--fg); color: var(--bg); font-size: 14px; box-shadow: 0 18px 40px -16px rgba(0, 0, 0, .6); }
+.toast[hidden] { display: none; }
+.toast button { border: 0; background: none; color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 0; }
+.foot { color: var(--muted); font-size: 13px; max-width: 70ch; }
+.foot p { margin: 0 0 6px; }
+
+/* ---- glass layer: frosted translucent surfaces over a soft drifting colour field ---- */
+body::before {
+  background: radial-gradient(640px 460px at 84% 4%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 66%),
+              radial-gradient(560px 440px at 6% 40%, color-mix(in srgb, var(--blob2) 22%, transparent), transparent 66%),
+              radial-gradient(620px 460px at 72% 82%, color-mix(in srgb, var(--blob3) 14%, transparent), transparent 66%);
+}
+body::after { content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none;
+  background: radial-gradient(440px 340px at 30% 70%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+              radial-gradient(400px 320px at 76% 28%, color-mix(in srgb, var(--blob2) 15%, transparent), transparent 70%);
+  animation: drift 28s ease-in-out infinite alternate; }
+@keyframes drift { to { transform: translate(6%, -5%) rotate(8deg); } }
+
+.card, .bar, .panel, .stats, .ins-card, .welcome, .drawer, .seg, .ibtn, .more, .toast, .gtip, input[type="search"], select:not(.st), .note {
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(var(--blur, 14px)) saturate(1.5); backdrop-filter: blur(var(--blur, 14px)) saturate(1.5);
+  box-shadow: inset 0 1px 0 var(--glass-hi), 0 14px 34px -22px var(--glass-shadow);
+}
+.bar, .toast, .gtip, input[type="search"], select:not(.st) { background: var(--glass-strong); --blur: 20px; }
+.card:hover { background: var(--glass-strong); }
+.panel { padding: 12px 14px; border-radius: 14px; margin-top: -8px; }
+.stats { align-self: flex-start; padding: 12px 18px; border-radius: 14px; }
+.chip { background: color-mix(in srgb, var(--surface) 40%, transparent); border-color: var(--glass-border); }
+.notebtn { background: color-mix(in srgb, var(--surface) 30%, transparent); }
+.toast { color: var(--fg); }
+.col { background: transparent; border: 1px dashed var(--glass-border); } /* plain lanes: only the job cards inside are glass */
+.skel { opacity: .7; }
+
+/* ---- insights: application progress + pay by role ---- */
+.insights { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 14px; }
+.ins-card { padding: 16px 18px; border-radius: 14px; min-width: 0; }
+.ins-card h2, .welcome h2 { margin: 0 0 12px; font: 600 15px var(--body); }
+.ins-card h2 small { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--muted); }
+.pipe { display: flex; gap: 2px; height: 12px; border-radius: 999px; overflow: hidden; background: var(--line); }
+.pipe span { min-width: 0; transition: flex-grow .8s var(--ease), min-width .8s var(--ease); }
+.p-toapply { background: color-mix(in srgb, var(--muted) 45%, transparent); }
+.p-applied { background: var(--s-applied-fg); } .p-interview { background: var(--s-int-fg); }
+.p-offer { background: var(--s-offer-fg); } .p-rejected { background: var(--s-rej-fg); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; }
+.legend b { color: var(--fg); font: 500 13px var(--mono); }
+.paychart { display: flex; flex-direction: column; gap: 7px; }
+.pc-row { display: grid; grid-template-columns: 112px minmax(0, 1fr) 92px; gap: 10px; align-items: center; font-size: 13px; }
+.pc-l { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.pc-bar i { display: block; height: 100%; width: var(--w); border-radius: 4px; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 45%, var(--blob2))); transform-origin: 0 50%; animation: grow 1s var(--ease) backwards; }
+.pc-v { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.pc-v small { font-size: 11px; color: var(--muted); }
+.muted { color: var(--muted); margin: 0; font-size: 13px; }
+
+/* ---- welcome card (first visit) ---- */
+.welcome { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; padding: 16px 18px; border-radius: 14px; }
+.welcome[hidden], .scrim[hidden], .drawer[hidden] { display: none; }
+.welcome ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
+.welcome b { color: var(--fg); }
+
+/* ---- deadline ring around the logo: fills as the deadline nears ---- */
+.av { position: relative; }
+.av.ring::after { content: ""; position: absolute; inset: -5px; border-radius: 16px; padding: 2.5px; pointer-events: none;
+  background: conic-gradient(var(--rc, var(--s-int-fg)) calc(var(--ring) * 1%), color-mix(in srgb, var(--rc, var(--s-int-fg)) 18%, transparent) 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+.av.ring.hot { --rc: var(--warn); }
+.av.ring.hot::after { animation: ringpulse 1.6s ease-in-out infinite; }
+@keyframes ringpulse { 50% { opacity: .5; } }
+
+/* ---- skeleton cards shaped like real cards ---- */
+.skel-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) 90px; gap: 16px; align-items: center; padding: 16px; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass-bg); }
+.sk-av, .sk-lines i, .sk-btn { display: block; border-radius: 8px; background: linear-gradient(90deg, color-mix(in srgb, var(--line) 75%, transparent) 25%, color-mix(in srgb, var(--line) 30%, var(--surface)) 50%, color-mix(in srgb, var(--line) 75%, transparent) 75%); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
+.sk-av { width: 44px; height: 44px; border-radius: 12px; }
+.sk-lines { display: grid; gap: 8px; }
+.sk-lines i { height: 11px; width: 60%; }
+.sk-lines i:first-child { height: 13px; width: 35%; }
+.sk-lines i.short { width: 25%; }
+.sk-btn { height: 34px; }
+
+/* ---- job detail drawer ---- */
+.job { cursor: pointer; }
+.job:focus-visible { outline: none; }
+.job:focus-visible .card { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scrim { position: fixed; inset: 0; z-index: 7; background: rgba(4, 9, 15, .38); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 8; width: min(460px, 100vw); overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
+  padding: max(20px, env(safe-area-inset-top, 0px)) max(22px, env(safe-area-inset-right, 0px)) max(20px, env(safe-area-inset-bottom, 0px)) 22px;
+  border-radius: 18px 0 0 18px; background: var(--glass-strong); --blur: 26px; }
+.d-head { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; align-items: start; }
+.av.big { width: 64px; height: 64px; border-radius: 16px; font-size: 26px; }
+.d-head .eyebrow { margin: 0; }
+.d-head h2 { margin: 2px 0 0; font: 700 24px/1.1 var(--display); text-wrap: balance; }
+.d-role { margin: 4px 0 0; color: var(--muted); }
+.d-close { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--glass-border); background: color-mix(in srgb, var(--surface) 50%, transparent); color: var(--fg); font-size: 20px; line-height: 1; cursor: pointer; }
+.d-facts { margin: 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; }
+.d-facts div { padding: 10px 0; border-bottom: 1px solid var(--glass-border); min-width: 0; }
+.d-facts dt { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.d-facts dd { margin: 3px 0 0; overflow-wrap: anywhere; }
+.d-facts .mono { font: 13px var(--mono); }
+.d-note { margin: 0; color: var(--muted); font-size: 14px; }
+.d-label { margin-bottom: -8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.drawer textarea { font: inherit; color: var(--fg); background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 10px; padding: 10px 12px; resize: vertical; }
+.drawer .st { align-self: flex-start; padding: 9px 12px; font-size: 14px; }
+.drawer[data-s="To apply"] .st { background: var(--s-apply-bg); color: var(--s-apply-fg); }
+.drawer[data-s="Applied"] .st { background: var(--s-applied-bg); color: var(--s-applied-fg); }
+.drawer[data-s="Interview"] .st { background: var(--s-int-bg); color: var(--s-int-fg); }
+.drawer[data-s="Offer"] .st { background: var(--s-offer-bg); color: var(--s-offer-fg); }
+.drawer[data-s="Rejected"] .st { background: var(--s-rej-bg); color: var(--s-rej-fg); }
+.d-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; padding-top: 6px; }
+.d-actions .go { padding: 12px 18px; min-width: 0; white-space: normal; overflow-wrap: anywhere; } /* long hosts wrap instead of overflowing */
+.confetti { position: fixed; inset: 0; z-index: 9; width: 100%; height: 100%; pointer-events: none; display: none; }
+
+/* ---- tech stack chips on cards ---- */
+.stk { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.stk span { font: 500 11.5px var(--mono); padding: 5px 9px; border-radius: 6px; background: color-mix(in srgb, var(--accent) 11%, transparent); color: var(--fg); }
+.stk.guess span { background: transparent; border: 1px dashed var(--glass-border); color: var(--muted); }
+.stk .plus { background: transparent; color: var(--muted); }
+
+/* ---- drawer: globe stage, stack, description ---- */
+.d-globe { position: relative; flex: none; height: 230px; margin-inline: -22px; overflow: hidden; border-block: 1px solid var(--glass-border);
+  background: radial-gradient(ellipse at 50% 115%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%); }
+.d-globe .gwrap::before { display: none; }
+.d-sec > h3 { margin: 0 0 8px; font: 600 12px var(--body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.d-list { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; line-height: 1.5; }
+.d-p { margin: 0; font-size: 14px; color: var(--muted); }
+.d-hint { margin: 0; font-size: 12.5px; color: var(--muted); }
+.sg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 7px; }
+.sg-l { width: 96px; flex: none; font-size: 12px; color: var(--muted); }
+.sk, .perks span { font-size: 12.5px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--glass-border); background: color-mix(in srgb, var(--surface) 45%, transparent); }
+.sk.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; font-weight: 600; }
+.sk.guess { border-style: dashed; }
+.perks { display: flex; flex-wrap: wrap; gap: 6px; }
+.d-kv { margin: 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; }
+.d-kv div { padding: 8px 0; border-bottom: 1px solid var(--glass-border); min-width: 0; }
+.d-kv dt { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.d-kv dd { margin: 3px 0 0; font-size: 14px; overflow-wrap: anywhere; }
+.d-load { display: grid; gap: 9px; }
+.d-load i { display: block; height: 11px; width: 92%; border-radius: 6px; background: linear-gradient(90deg, color-mix(in srgb, var(--line) 75%, transparent) 25%, color-mix(in srgb, var(--line) 30%, var(--surface)) 50%, color-mix(in srgb, var(--line) 75%, transparent) 75%); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
+.d-load i.short { width: 55%; }
+.d-track { display: flex; flex-direction: column; gap: 12px; }
+.d-track .d-label { margin-bottom: -6px; }
+#dOfficial[hidden] { display: none; }
+#dBody { display: flex; flex-direction: column; gap: 14px; }
+
+@keyframes wordin { from { opacity: 0; transform: translateY(.45em) rotateX(-55deg); } }
+@keyframes fadeup { from { opacity: 0; transform: translateY(14px); } }
+@keyframes rise { from { opacity: 0; transform: translateY(26px) rotateX(-12deg) scale(.97); } }
+@keyframes grow { from { transform: scaleX(0); } }
+@keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes flash { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
+.job.in { animation: rise .65s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 38ms); }
+
+@media (max-width: 760px) {
+  .hero { grid-template-columns: 1fr; }
+  .insights { grid-template-columns: 1fr; }
+  .welcome { flex-direction: column; }
+  .drawer { border-radius: 0; }
+  .d-globe { height: 200px; }
+  .sg-l { width: 100%; }
+  .pc-row { grid-template-columns: 96px minmax(0, 1fr) 84px; }
+  .globe { order: -1; justify-self: center; max-width: 300px; }
+  .bar { position: static; margin-inline: -4px; }
+  .payf { margin-left: 0; width: 100%; }
+  .payf input { flex: 1; width: auto; }
+  .card { grid-template-columns: 44px minmax(0, 1fr); }
+  .city, .pay, .ctl, .go { grid-column: 1 / -1; }
+  .go { justify-self: start; }
+  .board { grid-template-columns: repeat(5, 82vw); }
+  .card, .chip, .col { --blur: 8px; } /* lighter blur keeps scrolling smooth on phones */
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .card { transform: none !important; }
+}
+/* ---- performance ---- */
+/* Cards stay translucent but skip the live blur: over a smooth gradient it is almost invisible and it is the most
+   expensive thing to scroll. The background no longer drifts, because a moving background makes every blurred
+   surface re-blur on every frame. */
+.card { -webkit-backdrop-filter: none; backdrop-filter: none; transition: transform .28s var(--ease), box-shadow .2s, border-color .15s; }
+body::after { animation: none; }
+.list .job { content-visibility: auto; contain-intrinsic-size: auto 150px; }
+.chip, .ibtn, .more, .notebtn, .seg button { transition-duration: .14s; }
+
+/* ---- phone layout ---- */
+.mobile-only, .narrow-only { display: none; }
+.fcount { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 6px; padding: 0 6px; border-radius: 10px; background: var(--accent); color: var(--accent-fg); font: 600 12px var(--mono); }
+.fcount[hidden], .sheet[hidden], .sheet-scrim[hidden] { display: none; }
+.sheet-scrim { position: fixed; inset: 0; z-index: 7; background: rgba(4, 9, 15, .42); }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; max-height: 86dvh; display: flex; flex-direction: column; border-radius: 20px 20px 0 0;
+  border: 1px solid var(--glass-border); border-bottom: 0; background: var(--glass-strong); -webkit-backdrop-filter: blur(24px) saturate(1.5); backdrop-filter: blur(24px) saturate(1.5);
+  box-shadow: 0 -20px 50px -20px rgba(0, 0, 0, .55); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.sheet-head { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; touch-action: none;
+  padding: 14px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
+.sheet-head .grab { position: absolute; top: 6px; left: 50%; width: 40px; height: 4px; margin-left: -20px; border-radius: 2px; background: var(--line); }
+.sheet-head h2 { margin: 0; font: 600 17px var(--body); }
+.sheet-body { overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 14px;
+  padding: 4px max(16px, env(safe-area-inset-right, 0px)) 18px max(16px, env(safe-area-inset-left, 0px)); }
+.sheet-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.sheet-row > * { flex: 1 1 140px; }
+
+@media (max-width: 760px) {
+  .mobile-only { display: inline-flex; align-items: center; }
+  body { padding-block: 16px 40px; }
+  .wrap { gap: 14px; }
+  /* hero: the globe sits beside the title, the paragraph is shorter and the stats fit on one row,
+     so the first jobs are about one screen down instead of two */
+  .wide-only { display: none; }
+  .narrow-only { display: block; }
+  .hero { grid-template-columns: minmax(0, 1fr) 118px; grid-template-areas: "eyebrow globe" "title globe" "sub sub" "stats stats"; gap: 0 10px; align-items: center; }
+  .hero-copy { display: contents; }
+  .hero .eyebrow { grid-area: eyebrow; align-self: end; }
+  .hero h1 { grid-area: title; align-self: start; margin-top: 6px; font-size: clamp(26px, 8vw, 32px); }
+  .hero .sub { grid-area: sub; margin-top: 12px; font-size: 14px; }
+  .globe { grid-area: globe; max-width: none; width: 118px; justify-self: end; }
+  .ghint { display: none; }
+  .stats { grid-area: stats; margin-top: 12px; display: grid; grid-template-columns: 1.5fr 1fr 1.2fr 1fr; gap: 6px 10px; padding: 10px 14px; align-self: stretch; }
+  .stats li { flex-direction: column; align-items: flex-start; gap: 0; min-width: 0; }
+  .stats .n { font-size: 19px; }
+  .stats .l { font-size: 12px; }
+  .stats .urgent { grid-column: 1 / -1; flex-direction: row; align-items: baseline; gap: 6px; }
+  /* "Your applications" only once something is tracked; "Typical pay by role" moves into the Filters sheet */
+  .insights.empty { display: none; }
+  .sheet .ins-card { padding: 4px 0 0; border: 0; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .sheet .ins-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .sheet .ins-card h2 small { display: block; margin: 2px 0 0; text-transform: none; letter-spacing: 0; }
+  /* compact sticky search bar; the other controls live in the Filters sheet */
+  .bar { position: sticky; top: env(safe-area-inset-top, 0px); margin-inline: -8px; padding: 8px; --blur: 12px; }
+  .sheet .seg { display: flex; }
+  .sheet .seg button { flex: 1; min-height: 38px; }
+  .row1 { flex-wrap: nowrap; gap: 6px; }
+  .field { flex: 1 1 auto; }
+  .field kbd { display: none; }
+  .seg button { padding: 8px 10px; }
+  .panel { background: none; border: 0; box-shadow: none; padding: 0 2px; margin: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  /* tap targets of 40-44px, and 16px text so iPhones do not zoom into fields */
+  input[type="search"], select, .note, .drawer textarea { font-size: 16px; min-height: 44px; }
+  .ibtn, .seg button, .go, .more { min-height: 44px; }
+  .chip { min-height: 40px; padding: 8px 14px; font-size: 14px; }
+  .notebtn, .linkbtn { min-height: 40px; }
+  .st { min-height: 40px; font-size: 16px; }
+  /* compact card: logo + title, then city | pay, then status + note | apply */
+  .list .card { grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-areas: "av who who" "city city pay" "ctl ctl go" "note note note"; gap: 10px 12px; padding: 12px 14px; }
+  .list .av { grid-area: av; align-self: start; }
+  /* stack chips stay on one line; the fade says there are more (all of them are in the job panel) */
+  .stk { flex-wrap: nowrap; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent); mask-image: linear-gradient(90deg, #000 82%, transparent); }
+  .stk span { flex: none; }
+  .list .who { grid-area: who; }
+  .list .city { grid-area: city; align-self: center; font-size: 13px; color: var(--muted); }
+  .list .pay { grid-area: pay; text-align: right; }
+  .list .ctl { grid-area: ctl; }
+  .list .go { grid-area: go; justify-self: end; }
+  .list .note { grid-area: note; }
+  .list .meter { width: 96px; margin-left: auto; }
+  .tags { gap: 4px; }
+  .tag { padding: 5px 9px; font-size: 11px; }
+  .list .tag.mnc ~ .tag.ty { display: none; } /* "Top MNC" already says it is a big company */
+  /* lighter effects keep scrolling smooth on phones */
+  .card { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-strong); }
+  body::after { animation: none; }
+  .list .job { content-visibility: auto; contain-intrinsic-size: auto 190px; }
+  /* job panel: Apply stays reachable at the bottom; swipe the header right to close */
+  .drawer { padding-bottom: 0; }
+  .d-actions { position: sticky; bottom: 0; z-index: 2; margin: 0 -22px; padding: 12px 22px max(14px, env(safe-area-inset-bottom, 0px));
+    background: var(--glass-strong); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border-top: 1px solid var(--glass-border); }
+  .d-actions .go { flex: 1; justify-content: center; text-align: center; }
+  .d-head { touch-action: pan-y; }
+}
+
+/* ---- more motion ---- */
+/* Scroll-driven 3D reveals: cards and sections tip up into place as they scroll in, and the hero copy tilts
+   back as it scrolls out. Runs on the compositor, so it costs no JavaScript while scrolling. */
+.hero-copy { perspective: 900px; transform-origin: 50% 100%; }
+@supports (animation-timeline: view()) {
+  .list .job:not(.in), .insights, .welcome, .panel, .foot {
+    animation: scrollrise linear both; animation-timeline: view(); animation-range: entry 0% entry 75%; }
+  .hero-copy { animation: heroout linear both; animation-timeline: view(); animation-range: exit 0% exit 100%; }
+}
+@keyframes scrollrise { from { opacity: 0; transform: perspective(1000px) translateY(46px) rotateX(-16deg) scale(.96); } }
+@keyframes heroout { to { opacity: .2; transform: perspective(900px) translateY(-20px) rotateX(18deg) scale(.95); } }
+/* View transitions: the theme spreads out from the theme button; list and board swing past each other in 3D */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .28s; }
+:root[data-vt="theme"]::view-transition-old(root) { animation: none; }
+:root[data-vt="theme"]::view-transition-new(root) { animation: vtcircle .6s var(--ease); }
+@keyframes vtcircle { from { clip-path: circle(0 at var(--vx, 50%) var(--vy, 0)); } to { clip-path: circle(150vmax at var(--vx, 50%) var(--vy, 0)); } }
+:root[data-vt="view"] #view { view-transition-name: jobview; }
+:root[data-vt="view"]::view-transition-group(jobview) { animation-duration: .45s; animation-timing-function: var(--ease); }
+:root[data-vt="view"]::view-transition-old(jobview) { animation: vtout .3s var(--ease) both; }
+:root[data-vt="view"]::view-transition-new(jobview) { animation: vtin .45s var(--ease) both; }
+@keyframes vtout { to { opacity: 0; transform: perspective(1400px) translateX(-5%) rotateY(14deg) scale(.94); } }
+@keyframes vtin { from { opacity: 0; transform: perspective(1400px) translateX(5%) rotateY(-14deg) scale(.94); } }
+/* the toast is centred with `translate`, so Motion can own `transform` for its springs */
+.toast { transform: none; translate: -50% 0; }
+.ghost { position: fixed; z-index: 10; margin: 0; pointer-events: none; }
+/* Filters sheet: the results button is pinned at the bottom, where the thumb is */
+.sheet-foot { padding: 10px max(16px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); border-top: 1px solid var(--glass-border); }
+.sheet-foot .go { width: 100%; justify-content: center; border: 0; cursor: pointer; min-height: 48px; font-size: 15px; }
+.sheet { padding-bottom: 0; }
+/* touch screens: a card dips slightly under the finger, unless the tap is on one of its controls */
+@media (pointer: coarse) {
+  .job:active:not(:has(a:active, button:active, select:active, input:active)) .card { --press: .975; transition-duration: .1s; }
+}
+</style>
+</head>
+<body>
+<div class="progress" id="prog"></div>
+<div class="wrap">
+  <header class="hero" id="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Batch 2027 · Tier 1 India</p>
+      <h1><span class="w">2027 Fresher</span> <span class="w">Job Tracker</span></h1>
+      <p class="sub">Frontend, full stack and Flutter openings for the 2027 batch<span class="wide-only"> in <b>Bangalore, Hyderabad, Chennai, Pune, Mumbai and Delhi NCR</b></span>. <span id="asof">Loading listings…</span><span class="wide-only"> “exp.” means the pay is an estimate from a listing site, not from the employer.</span></p>
+      <ul class="stats" id="stats" aria-label="Summary"></ul>
+    </div>
+    <div class="globe" id="globeBox">
+      <div class="gwrap" id="gwrap">
+        <canvas id="globe" aria-label="Globe showing the six cities"></canvas>
+        <div class="gtip" id="gtip" hidden></div>
+      </div>
+      <p class="ghint">Drag to spin · click a city to filter</p>
+    </div>
+  </header>
+
+  <section class="welcome" id="welcome" hidden aria-label="How this tracker works">
+    <div>
+      <h2>Welcome to your 2027 job tracker</h2>
+      <ol>
+        <li><b>Filter</b> by city, role group or Top MNCs, or click a city on the globe.</li>
+        <li><b>Track</b> each job's status and notes. They stay saved in this browser.</li>
+        <li><b>Apply</b> opens the official posting in a new tab. Click any card for full details.</li>
+      </ol>
+    </div>
+    <button type="button" class="ibtn" id="wDone">Got it</button>
+  </section>
+
+  <section class="insights" aria-label="Your progress and pay by role">
+    <div class="ins-card">
+      <h2>Your applications <small id="pipeNote"></small></h2>
+      <div class="pipe" id="pipe" role="img" aria-label="Application progress"></div>
+      <ul class="legend" id="pipeLegend"></ul>
+    </div>
+    <div class="ins-card" id="payCard">
+      <h2>Typical pay by role <small>median of listings that show pay, ₹k per month</small></h2>
+      <div class="paychart" id="paychart"><p class="muted">Loading…</p></div>
+    </div>
+  </section>
+
+  <section class="bar" id="bar" aria-label="Filters">
+    <div class="row1">
+      <div class="field"><input type="search" id="q" placeholder="Search company, role or skill" aria-label="Search company, role or skill" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false"><kbd>/</kbd></div>
+      <button type="button" class="ibtn mobile-only" id="filtersBtn" aria-expanded="false" aria-controls="sheet">Filters<span class="fcount" id="fcount" hidden></span></button>
+      <select id="status" aria-label="Filter by status"></select>
+      <select id="sort" aria-label="Sort">
+        <option value="rec">Sort: top MNCs, then best match</option>
+        <option value="pay">Sort: highest pay</option>
+        <option value="new">Sort: newest first</option>
+        <option value="closing">Sort: closing soonest</option>
+        <option value="pipeline">Sort: my pipeline</option>
+        <option value="company">Sort: company A to Z</option>
+      </select>
+      <div class="seg" id="viewSeg" role="group" aria-label="View">
+        <button type="button" data-view="list" aria-pressed="true">List</button>
+        <button type="button" data-view="board" aria-pressed="false">Board</button>
+      </div>
+      <button type="button" class="ibtn" id="theme" aria-label="Switch theme">Theme: Auto</button>
+      <button type="button" class="ibtn" id="export">Export CSV</button>
+      <button type="button" class="ibtn" id="sound" aria-pressed="false">Sound: Off</button>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Quick filters">
+    <div class="chips" id="cityChips"></div>
+    <div class="chips" id="catChips"></div>
+    <div class="chips" id="typeChips"></div>
+    <div class="chips" id="quickChips">
+      <span class="lbl">Show</span>
+      <button type="button" class="chip" data-q="qMnc" aria-pressed="false">Top MNCs only</button>
+      <button type="button" class="chip" data-q="qNew" aria-pressed="false">New this week</button>
+      <button type="button" class="chip" data-q="qClosing" aria-pressed="false">Closing soon</button>
+      <button type="button" class="chip" data-q="qPay" aria-pressed="false">Pay listed</button>
+      <label class="payf" for="minPay">Min pay <input type="range" id="minPay" min="0" max="100" step="5" value="0"><output id="minPayOut">Any</output></label>
+    </div>
+    <div class="sumrow"><span id="count"></span><button type="button" class="linkbtn" id="clear" hidden>Clear all filters</button></div>
+  </section>
+
+  <main id="view" class="list" aria-live="polite"></main>
+
+  <footer class="foot" id="foot">
+    <p class="narrow-only">“exp.” means the pay is an estimate from a listing site, not from the employer.</p>
+    <p>Status and notes are saved in this browser only. Apply on each company's own careers page, and never pay a fee to apply.</p>
+    <p>Almost no big company labels a 2027 role “frontend” or “full stack”. Most are general SWE internships with a coding round, so practise data structures alongside your projects.</p>
+  </footer>
+</div>
+<div class="sheet-scrim" id="sheetScrim" hidden></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Filters and sorting" hidden>
+  <div class="sheet-head" id="sheetHead"><span class="grab" aria-hidden="true"></span><h2>Filters</h2><button type="button" class="linkbtn" id="sheetReset">Reset</button></div>
+  <div class="sheet-body" id="sheetBody"></div>
+  <div class="sheet-foot"><button type="button" class="go" id="sheetDone">Show results</button></div>
+</section>
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle" hidden></aside>
+<canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="/motion.js"></script>
+<script src="/land.js?v=2"></script>
+<script src="/globe.js?v=3"></script>
+<script src="/gsap.min.js"></script>
+<script src="/Flip.min.js"></script>
+<script>
+const M = window.Motion || null;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const fine = matchMedia("(hover: hover) and (pointer: fine)").matches;
+const T = { big: "Big company", startup: "Startup", mobile: "Flutter / mobile" };
+const STATUSES = ["To apply", "Applied", "Interview", "Offer", "Rejected"];
+const CITIES = ["Bangalore", "Hyderabad", "Chennai", "Pune", "Mumbai", "Delhi NCR", "Multiple"];
+const DAY = 864e5, PAGE = 30, BOARD_COL = 8;
+let JOBS = [], loaded = false;
+
+const KEY = "job-tracker-2027-v1", PREFS = "jt-prefs", CACHE = "job-tracker-2027-cache";
+let saved = {}, prefs = { view: "list", theme: "auto" };
+try { saved = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
+try { prefs = { ...prefs, ...JSON.parse(localStorage.getItem(PREFS)) }; } catch (e) {}
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} };
+const savePrefs = () => { try { localStorage.setItem(PREFS, JSON.stringify(prefs)); } catch (e) {} };
+const get = id => saved[id] || (saved[id] = { s: "To apply", n: "" });
+
+const f = { q: "", city: "", type: "", cat: "", status: "", sort: "rec", qMnc: false, qNew: false, qClosing: false, qPay: false, minPay: 0, limit: PAGE };
+const open = new Set(), boardAll = {};
+let enter = true, flash = null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const hue = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+
+function daysLeft(j) {
+  if (!j.deadline) return null;
+  return Math.ceil((new Date(j.deadline + "T23:59:59+05:30") - Date.now()) / DAY);
+}
+const isNew = j => !!j.added && Date.now() - j.added < 7 * DAY;
+const closingSoon = j => { const d = daysLeft(j); return d !== null && d >= 0 && d <= 7; };
+function dlLabel(j) {
+  const d = daysLeft(j);
+  if (d === null) return "";
+  const date = new Date(j.deadline + "T12:00:00+05:30").toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  if (d < 0) return `<span class="tag dl">Closed ${date}</span>`;
+  return `<span class="tag dl">Closes ${date}${d <= 1 ? " · last day" : ` · ${d} days left`}</span>`;
+}
+
+// ---------- filtering ----------
+// Job title groups (set by the refresh Worker) and how much each is worth in the "best match" score.
+const CATS = { fullstack: "Full stack", frontend: "Frontend", mobile: "Flutter / mobile", backend: "Backend", data: "Data / AI", qa: "QA / testing", devops: "DevOps / cloud", swe: "General SWE" };
+const CAT_BOOST = { fullstack: 30, frontend: 30, mobile: 30, swe: 14, backend: 8, devops: 4, data: 2, qa: 2 };
+const PIPE = { Interview: 0, Offer: 1, Applied: 2, "To apply": 3, Rejected: 4 };
+
+// Sorting: every listing gets a score and a search string once, when data loads, so sorting and searching
+// are just comparisons. Results are memoised until a filter, the sort, or a status changes.
+let rev = 0, memoKey = "", memo = [];
+function prepare() {
+  const now = Date.now();
+  for (const j of JOBS) {
+    const d = daysLeft(j), age = j.added ? (now - j.added) / DAY : 99;
+    j._d = d === null || d < 0 ? 1e9 : d;
+    j._h = (j.co + " " + j.role + " " + j.cities.join(" ") + " " + (CATS[j.cat] || "") + " " + (j.stack || []).map(s => s[0]).join(" ")).toLowerCase();
+    // best match: closing soon > new > pay > frontend / full stack / Flutter roles > big companies
+    j._s = (j._d < 1e9 ? 120 - Math.min(j._d, 14) * 6 : 0) + Math.max(0, 14 - age) * 1.5 + Math.min(j.p || 0, 120) * .6 +
+      (j.p > 0 ? 5 : 0) + (j.type === "big" ? 8 : 0) + (CAT_BOOST[j.cat] || 0);
+  }
+  memoKey = "";
+}
+const byScore = (a, b) => b._s - a._s || (b.added || 0) - (a.added || 0) || a.co.localeCompare(b.co);
+const SORTERS = {
+  rec: (a, b) => (b.tier || 0) - (a.tier || 0) || byScore(a, b), // top MNCs first, then product companies, then the rest
+  pay: (a, b) => b.p - a.p || byScore(a, b),
+  new: (a, b) => (b.added || 0) - (a.added || 0) || byScore(a, b),
+  closing: (a, b) => a._d - b._d || byScore(a, b),
+  pipeline: (a, b) => PIPE[get(a.id).s] - PIPE[get(b.id).s] || byScore(a, b),
+  company: (a, b) => a.co.localeCompare(b.co) || byScore(a, b),
+};
+function visible() {
+  const key = JSON.stringify([f.q, f.city, f.type, f.cat, f.status, f.sort, f.qMnc, f.qNew, f.qClosing, f.qPay, f.minPay, rev, JOBS.length]);
+  if (key === memoKey) return memo;
+  const toks = f.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const out = JOBS.filter(j =>
+    (!f.city || j.cities.includes(f.city)) && (!f.type || j.type === f.type) && (!f.cat || j.cat === f.cat) &&
+    (!f.status || get(j.id).s === f.status) &&
+    (!f.qMnc || j.tier === 2) && (!f.qNew || isNew(j)) && (!f.qClosing || closingSoon(j)) && (!f.qPay || j.p > 0) && (!f.minPay || j.p >= f.minPay) &&
+    toks.every(t => j._h.includes(t)));
+  out.sort(SORTERS[f.sort] || SORTERS.rec);
+  memoKey = key; memo = out;
+  return out;
+}
+const filtersOn = () => !!(f.q || f.city || f.type || f.cat || f.status || f.qMnc || f.qNew || f.qClosing || f.qPay || f.minPay);
+
+// ---------- markup ----------
+function cardHTML(j, i, o) {
+  const st = get(j.id), d = daysLeft(j), urgent = d !== null && d >= 0 && d <= 3 && st.s === "To apply";
+  const cities = j.cities.map(c => c === "Multiple" ? "Multiple cities" : c).join(", ");
+  const logos = [j.domain ? "/logo/" + j.domain : "", j.logo].filter(Boolean); // company site icon first, then the logo the listing site holds
+  const ring = d !== null && d >= 0 && d <= 14 ? Math.round((14 - d) / 14 * 100) : -1; // deadline ring: fuller = closer
+  const meter = j.p > 0 ? `<div class="meter" title="About ₹${j.p}k per month"><i style="--w:${Math.min(100, Math.round(j.p / 1.2))}%"></i></div>` : "";
+  return `<article class="job${urgent ? " closing" : ""}${o.anim && i < 24 ? " in" : ""}${j.id === o.flashId ? " flash" : ""}" style="--i:${i}" data-id="${j.id}" data-s="${st.s}"${o.drag ? ' draggable="true"' : ""} tabindex="0" aria-label="${esc(j.co)}, ${esc(j.role)}. Press Enter for details">
+    <div class="card${o.compact ? " compact" : ""}">
+      <div class="av${logos.length ? " logo" : ""}${ring >= 0 ? (d <= 3 ? " ring hot" : " ring") : ""}" style="--h:${hue(j.co)}${ring >= 0 ? ";--ring:" + ring : ""}" aria-hidden="true"><span class="ini">${esc(j.co.trim().charAt(0).toUpperCase() || "?")}</span>${logos.length ? `<img src="${esc(logos[0])}" data-next="${esc(logos[1] || "")}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}</div>
+      <div class="who"><div class="co">${esc(j.co)}</div><div class="role">${esc(j.role)}</div>
+        <div class="tags">${j.tier === 2 ? '<span class="tag mnc">Top MNC</span>' : ""}<span class="tag ty">${T[j.type]}</span>${CATS[j.cat] && !(j.cat === "mobile" && j.type === "mobile") ? `<span class="tag cat">${CATS[j.cat]}</span>` : ""}${dlLabel(j)}${isNew(j) ? '<span class="tag new">New</span>' : ""}</div>${stackChips(j)}</div>
+      <div class="city">${esc(cities)}</div>
+      <div class="pay">${esc(j.pay)}${j.note ? `<small>${esc(j.note)}</small>` : ""}${meter}</div>
+      <div class="ctl"><select class="st" aria-label="Status for ${esc(j.co)}">${STATUSES.map(s => `<option${s === st.s ? " selected" : ""}>${s}</option>`).join("")}</select>
+        <button type="button" class="notebtn${st.n ? " has" : ""}">Note</button></div>
+      <a class="go" href="${esc(j.url)}" target="_blank" rel="noopener">Apply <span class="ar">↗</span></a>
+      <input class="note" type="text" placeholder="Note: referral, deadline, round dates" aria-label="Note for ${esc(j.co)}"${st.n || open.has(j.id) ? "" : " hidden"}>
+    </div>
+  </article>`;
+}
+// up to 4 tech-stack chips on a card; dashed when only guessed from the job title
+const stackChips = j => !j.stack || !j.stack.length ? "" :
+  `<div class="stk${j.stackGuess ? " guess" : ""}" title="${j.stackGuess ? "Guessed from the job title" : "Tech stack from the posting"}">${j.stack.slice(0, 4).map(([n]) => `<span>${esc(n)}</span>`).join("")}${j.stack.length > 4 ? `<span class="plus">+${j.stack.length - 4}</span>` : ""}</div>`;
+function listHTML(rows, o) {
+  if (!rows.length) return `<p class="empty">No openings match these filters. Try clearing one.</p>`;
+  const shown = rows.slice(0, f.limit);
+  return shown.map((j, i) => cardHTML(j, i, o)).join("") +
+    (rows.length > f.limit ? `<button type="button" class="more" id="more">Show ${Math.min(PAGE, rows.length - f.limit)} more<small>${rows.length - f.limit} left</small></button>` : "");
+}
+function boardHTML(rows, o) {
+  return STATUSES.map(s => {
+    const items = rows.filter(j => get(j.id).s === s), shown = boardAll[s] ? items : items.slice(0, BOARD_COL);
+    return `<section class="col" data-s="${s}"><h3>${s}<span>${items.length}</span></h3>` +
+      (items.length ? shown.map((j, i) => cardHTML(j, i, { ...o, compact: true, drag: true })).join("") : `<p class="colempty">Drop jobs here</p>`) +
+      (items.length > shown.length ? `<button type="button" class="colmore" data-s="${s}">Show all ${items.length}</button>` : "") + `</section>`;
+  }).join("");
+}
+
+// ---------- render ----------
+const SKELETON = '<div class="skel-card"><span class="sk-av"></span><span class="sk-lines"><i></i><i></i><i class="short"></i></span><span class="sk-btn"></span></div>'.repeat(6);
+function render() {
+  const rows = visible(), anim = enter, flashId = flash, host = $("view");
+  enter = false; flash = null;
+  // remember where each card sat, so cards that stay can glide to their new place (FLIP)
+  const before = new Map();
+  if (anim && loaded && !reduce) host.querySelectorAll(".job").forEach((el, i) => { if (i < 40) before.set(el.dataset.id, el.getBoundingClientRect().top); });
+  host.className = prefs.view === "board" ? "board" : "list";
+  host.innerHTML = !loaded ? SKELETON
+    : prefs.view === "board" ? boardHTML(rows, { anim, flashId }) : listHTML(rows, { anim, flashId });
+  host.querySelectorAll(".job").forEach(el => { el.querySelector(".note").value = get(el.dataset.id).n; });
+  if (anim && loaded) animateIn(host, before);
+  if (moreIO) { moreIO.disconnect(); if ($("more")) moreIO.observe($("more")); }
+  summary(rows); stats(rows);
+}
+function animateIn(host, before) {
+  const els = [...host.querySelectorAll(".job")].slice(0, 30);
+  if (reduce || !els.length || !M) return;
+  els.forEach(el => el.classList.remove("in"));
+  const fresh = [];
+  for (const el of els) {
+    const top = before.get(el.dataset.id);
+    if (top === undefined) { fresh.push(el); continue; }
+    const dy = top - el.getBoundingClientRect().top;
+    if (Math.abs(dy) > 2) M.animate(el, { y: [dy, 0] }, { type: "spring", stiffness: 520, damping: 42 });
+  }
+  if (fresh.length) M.animate(fresh.slice(0, 14), { opacity: [0, 1], y: [18, 0], rotateX: [-10, 0], scale: [.98, 1] }, { type: "spring", stiffness: 460, damping: 34, delay: M.stagger(.018) });
+}
+// Next page of cards, added after the ones already shown, so the cards above (and the scroll position) stay put.
+function appendMore() {
+  const btn = $("more"), rows = visible();
+  if (!btn || prefs.view !== "list") return;
+  const from = f.limit;
+  f.limit += PAGE;
+  btn.insertAdjacentHTML("beforebegin", rows.slice(from, f.limit).map((j, i) => cardHTML(j, from + i, {})).join(""));
+  rows.slice(from, f.limit).forEach(j => { const el = $("view").querySelector(`.job[data-id="${j.id}"] .note`); if (el) el.value = get(j.id).n; });
+  const left = rows.length - f.limit;
+  if (left > 0) btn.innerHTML = `Show ${Math.min(PAGE, left)} more<small>${left} left</small>`;
+  else btn.remove();
+}
+const moreIO = "IntersectionObserver" in window ? new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) appendMore(); }, { rootMargin: "0px 0px 900px 0px" }) : null;
+function summary(rows) {
+  $("count").textContent = loaded ? `${rows.length} of ${JOBS.length} openings` : "";
+  $("clear").hidden = !filtersOn();
+  // how many filters are on, shown on the phone's Filters button
+  const n = [f.city, f.type, f.cat, f.status, f.qMnc, f.qNew, f.qClosing, f.qPay, f.minPay].filter(Boolean).length;
+  $("fcount").textContent = n; $("fcount").hidden = !n;
+  $("sheetDone").textContent = !loaded ? "Show results" : rows.length ? `Show ${rows.length} job${rows.length === 1 ? "" : "s"}` : "No matches: loosen a filter";
+}
+const prevStat = {};
+function stats(rows) {
+  const n = s => JOBS.filter(j => get(j.id).s === s).length, closing = JOBS.filter(j => closingSoon(j) && get(j.id).s === "To apply").length;
+  const li = (k, v, label, suf = "", cls = "") => `<li${cls ? ` class="${cls}"` : ""}><span class="n" data-k="${k}" data-to="${v}" data-suf="${suf}">${v}${suf}</span><span class="l">${label}</span></li>`;
+  $("stats").innerHTML = li("shown", rows.length, "shown", "/" + JOBS.length) + li("applied", n("Applied"), "applied") + li("interview", n("Interview"), "interviews") + li("offer", n("Offer"), "offers") +
+    (closing ? li("closing", closing, "closing soon", "", "urgent") : "");
+  document.querySelectorAll("#stats .n").forEach(el => {
+    const k = el.dataset.k, to = +el.dataset.to, suf = el.dataset.suf, from = prevStat[k] ?? 0;
+    prevStat[k] = to;
+    if (reduce || from === to) return;
+    if (M) M.animate(from, to, { duration: .45, ease: "easeOut", onUpdate: v => { el.textContent = Math.round(v) + suf; } });
+    else el.textContent = to + suf;
+  });
+  insights();
+}
+
+// ---------- chips ----------
+function buildChips() {
+  const cnt = {}, tcnt = {};
+  JOBS.forEach(j => { j.cities.forEach(c => { cnt[c] = (cnt[c] || 0) + 1; }); tcnt[j.type] = (tcnt[j.type] || 0) + 1; });
+  window.Globe?.setCounts(cnt);
+  const chip = (k, v, l, n) => `<button type="button" class="chip" data-k="${k}" data-v="${esc(v)}" aria-pressed="${f[k] === v}">${esc(l)}<small>${n}</small></button>`;
+  $("cityChips").innerHTML = '<span class="lbl">City</span>' + chip("city", "", "All cities", JOBS.length) +
+    CITIES.filter(c => cnt[c]).map(c => chip("city", c, c === "Multiple" ? "Multiple / pan-India" : c, cnt[c])).join("");
+  const ccnt = {};
+  JOBS.forEach(j => { if (j.cat) ccnt[j.cat] = (ccnt[j.cat] || 0) + 1; });
+  $("catChips").innerHTML = '<span class="lbl">Role</span>' + chip("cat", "", "All roles", JOBS.length) +
+    Object.entries(CATS).filter(([k]) => ccnt[k]).map(([k, l]) => chip("cat", k, l, ccnt[k])).join("");
+  $("typeChips").innerHTML = '<span class="lbl">Type</span>' + chip("type", "", "All types", JOBS.length) +
+    Object.entries(T).filter(([k]) => tcnt[k]).map(([k, l]) => chip("type", k, l, tcnt[k])).join("");
+}
+function syncChips() {
+  document.querySelectorAll(".chip[data-k]").forEach(b => b.setAttribute("aria-pressed", String(f[b.dataset.k] === b.dataset.v)));
+  document.querySelectorAll(".chip[data-q]").forEach(b => b.setAttribute("aria-pressed", String(f[b.dataset.q])));
+  $("minPay").value = f.minPay; $("minPayOut").textContent = f.minPay ? "₹" + f.minPay + "k+" : "Any";
+  $("q").value = f.q; $("status").value = f.status;
+  document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === prefs.view)));
+}
+const changed = () => { f.limit = PAGE; enter = true; syncChips(); render(); };
+$("status").innerHTML = `<option value="">Status: all</option>` + STATUSES.map(s => `<option>${s}</option>`).join("");
+
+// ---------- toast ----------
+let tt, toastGen = 0;
+function toast(msg, undo) {
+  const el = $("toast"), span = document.createElement("span");
+  toastGen++;
+  span.textContent = msg;
+  el.replaceChildren(span);
+  if (undo) { const b = document.createElement("button"); b.type = "button"; b.textContent = "Undo"; b.onclick = () => { undo(); hideToast(); }; el.append(b); }
+  el.hidden = false;
+  if (M && !reduce) M.animate(el, { opacity: [0, 1], y: [24, 0], scale: [.94, 1] }, { type: "spring", stiffness: 560, damping: 34 });
+  clearTimeout(tt); tt = setTimeout(hideToast, 4500);
+}
+function hideToast() {
+  const el = $("toast");
+  if (el.hidden) return;
+  if (!M || reduce) { el.hidden = true; return; }
+  const g = toastGen; // a toast shown while this one fades out keeps showing
+  M.animate(el, { opacity: 0, y: 16, scale: .96 }, { duration: .16 }).then(() => { if (g === toastGen) el.hidden = true; });
+}
+
+// ---------- status changes ----------
+// The changed card glides from where it was to where it lands (another board column, or a new place in the
+// sorted list) with a 3D swing, and its status pill flips over to the new value.
+function morphCard(id, from) {
+  const el = document.querySelector(`.job[data-id="${id}"]`);
+  if (!el || !M || reduce) return;
+  const to = el.getBoundingClientRect(), dx = from ? from.left - to.left : 0, dy = from ? from.top - to.top : 0;
+  M.animate(el, { x: [dx, 0], y: [dy, 0], rotateY: [Math.abs(dx) > 2 ? Math.sign(dx) * 20 : 0, 0], rotateX: [Math.abs(dx) > 2 ? 0 : -16, 0], scale: [.95, 1] },
+    { type: "spring", stiffness: 380, damping: 30 });
+  const st = el.querySelector(".st");
+  if (st) M.animate(st, { rotateX: [100, 0] }, { type: "spring", stiffness: 520, damping: 26 });
+}
+function setStatus(id, s, quiet) {
+  const prev = get(id).s;
+  if (prev === s) return;
+  // a card being dragged has already been carried to its column by the pointer, so it only pops in place
+  const old = document.querySelector(`.job[data-id="${id}"]:not(.dragging)`), from = old && old.getBoundingClientRect();
+  get(id).s = s; persist(); rev++; flash = id; render();
+  morphCard(id, from);
+  const j = JOBS.find(x => x.id === id);
+  if (drawerId === id) openDrawer(id, true);
+  if (!quiet) { feedback(s); toast(`${j ? j.co : "Job"}: ${prev} → ${s}`, () => setStatus(id, prev, true)); }
+}
+
+// ---------- events ----------
+document.addEventListener("click", e => {
+  const chip = e.target.closest(".chip");
+  if (chip) {
+    if (chip.dataset.k) {
+      f[chip.dataset.k] = chip.dataset.k === "city" && f.city === chip.dataset.v ? "" : chip.dataset.v;
+      if (chip.dataset.k === "city") window.Globe?.focus(f.city);
+    } else f[chip.dataset.q] = !f[chip.dataset.q];
+    return changed();
+  }
+  const seg = e.target.closest(".seg button");
+  if (seg) {
+    if (seg.dataset.view === prefs.view) return;
+    // with a view transition the whole view swings over in 3D, so the cards skip their own entrance
+    return vt("view", () => { prefs.view = seg.dataset.view; savePrefs(); f.limit = PAGE; enter = !hasVT; syncChips(); render(); });
+  }
+  if (e.target.closest("#more")) { appendMore(); return; }
+  const cm = e.target.closest(".colmore");
+  if (cm) { boardAll[cm.dataset.s] = true; render(); return; }
+  const nb = e.target.closest(".notebtn");
+  if (nb) {
+    const id = nb.closest(".job").dataset.id;
+    open.has(id) ? open.delete(id) : open.add(id);
+    render();
+    const el = document.querySelector(`.job[data-id="${id}"] .note`);
+    if (el && !el.hidden) el.focus();
+  }
+});
+$("view").addEventListener("change", e => { if (e.target.classList.contains("st")) setStatus(e.target.closest(".job").dataset.id, e.target.value); });
+$("view").addEventListener("input", e => {
+  if (!e.target.classList.contains("note")) return;
+  const job = e.target.closest(".job");
+  get(job.dataset.id).n = e.target.value;
+  job.querySelector(".notebtn").classList.toggle("has", !!e.target.value);
+  persist();
+});
+let qTimer;
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); }); // phones: Search closes the keyboard
+$("q").addEventListener("input", e => {
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => { f.q = e.target.value; f.limit = PAGE; enter = true; render(); }, 120);
+});
+// a company logo that fails to load tries the next source, then falls back to the initial letter
+$("view").addEventListener("error", e => {
+  const img = e.target;
+  if (!(img instanceof HTMLImageElement) || !img.closest(".av")) return;
+  if (img.dataset.next) { const n = img.dataset.next; img.dataset.next = ""; img.src = n; }
+  else { img.closest(".av").classList.remove("logo"); img.remove(); }
+}, true);
+$("status").addEventListener("change", e => { f.status = e.target.value; changed(); });
+$("sort").addEventListener("change", e => { f.sort = e.target.value; changed(); });
+$("minPay").addEventListener("input", e => { f.minPay = +e.target.value; $("minPayOut").textContent = f.minPay ? "₹" + f.minPay + "k+" : "Any"; f.limit = PAGE; render(); });
+$("clear").addEventListener("click", () => {
+  Object.assign(f, { q: "", city: "", type: "", cat: "", status: "", qMnc: false, qNew: false, qClosing: false, qPay: false, minPay: 0 });
+  window.Globe?.focus(null); changed();
+});
+addEventListener("keydown", e => {
+  if (e.key === "/" && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); $("q").focus(); }
+  else if (e.key === "Escape" && document.activeElement === $("q")) { $("q").blur(); }
+});
+
+// View Transitions API (native): the browser snapshots the page, applies the change, then animates between the two.
+// Browsers without it (and reduced motion) just apply the change.
+const hasVT = !!document.startViewTransition && !reduce;
+function vt(kind, update) {
+  if (!hasVT) return update();
+  const r = document.documentElement;
+  r.dataset.vt = kind;
+  document.startViewTransition(update).finished.finally(() => { if (r.dataset.vt === kind) delete r.dataset.vt; });
+}
+
+// theme: the new theme spreads out in a circle from the button
+const THEMES = { auto: "Auto", light: "Light", dark: "Dark" };
+function applyTheme() {
+  const r = document.documentElement;
+  prefs.theme === "auto" ? r.removeAttribute("data-theme") : r.setAttribute("data-theme", prefs.theme);
+  $("theme").textContent = "Theme: " + THEMES[prefs.theme];
+  requestAnimationFrame(() => window.Globe?.refreshColors());
+}
+$("theme").addEventListener("click", e => {
+  const b = e.currentTarget.getBoundingClientRect(), rs = document.documentElement.style;
+  rs.setProperty("--vx", Math.round(b.left + b.width / 2) + "px"); rs.setProperty("--vy", Math.round(b.top + b.height / 2) + "px");
+  const k = Object.keys(THEMES); prefs.theme = k[(k.indexOf(prefs.theme) + 1) % k.length]; savePrefs();
+  vt("theme", applyTheme);
+});
+
+// export tracked jobs
+$("export").addEventListener("click", () => {
+  const tracked = JOBS.filter(j => get(j.id).s !== "To apply" || get(j.id).n);
+  if (!tracked.length) return toast("Nothing to export yet. Set a status or add a note first.");
+  const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const csv = [["Company", "Role", "Cities", "Pay", "Status", "Note", "Link"].map(q).join(",")]
+    .concat(tracked.map(j => [j.co, j.role, j.cities.join("/"), j.pay, get(j.id).s, get(j.id).n, j.url].map(q).join(","))).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv" }));
+  a.download = "my-job-applications.csv";
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(`Exported ${tracked.length} tracked job${tracked.length === 1 ? "" : "s"}`);
+});
+
+// board drag and drop
+const view = $("view");
+view.addEventListener("dragstart", e => {
+  const job = e.target.closest(".job[draggable]");
+  if (!job) return;
+  e.dataTransfer.setData("text/plain", job.dataset.id); e.dataTransfer.effectAllowed = "move"; job.classList.add("dragging");
+});
+view.addEventListener("dragend", e => { e.target.closest?.(".job")?.classList.remove("dragging"); view.querySelectorAll(".col.over").forEach(c => c.classList.remove("over")); });
+view.addEventListener("dragover", e => { const c = e.target.closest(".col"); if (c) { e.preventDefault(); c.classList.add("over"); } });
+view.addEventListener("dragleave", e => { const c = e.target.closest(".col"); if (c && !c.contains(e.relatedTarget)) c.classList.remove("over"); });
+view.addEventListener("drop", e => {
+  const c = e.target.closest(".col");
+  if (!c) return;
+  e.preventDefault(); c.classList.remove("over");
+  setStatus(e.dataTransfer.getData("text/plain"), c.dataset.s);
+});
+
+// card tilt + magnetic Apply button (mouse only)
+if (fine && !reduce) {
+  // pointer moves are coalesced to one update per frame
+  let pmEv = null;
+  view.addEventListener("pointermove", e => { if (!pmEv) requestAnimationFrame(() => { const ev = pmEv; pmEv = null; tiltMove(ev); }); pmEv = e; });
+  const tiltMove = e => {
+    const go = e.target.closest(".go");
+    if (go && M) {
+      const r = go.getBoundingClientRect();
+      M.animate(go, { x: (e.clientX - r.left - r.width / 2) * .25, y: (e.clientY - r.top - r.height / 2) * .35 }, { type: "spring", stiffness: 320, damping: 18 });
+    }
+    const card = e.target.closest(".card");
+    if (!card) return;
+    const r = card.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    card.classList.add("tilting");
+    card.style.setProperty("--ry", ((x - .5) * 5).toFixed(2) + "deg");
+    card.style.setProperty("--rx", ((.5 - y) * 4).toFixed(2) + "deg");
+    card.style.setProperty("--mx", (x * 100).toFixed(1) + "%");
+    card.style.setProperty("--my", (y * 100).toFixed(1) + "%");
+  };
+  view.addEventListener("pointerout", e => {
+    const go = e.target.closest(".go");
+    if (go && M && !go.contains(e.relatedTarget)) M.animate(go, { x: 0, y: 0 }, { type: "spring", stiffness: 320, damping: 18 });
+    const card = e.target.closest(".card");
+    if (card && !card.contains(e.relatedTarget)) { card.classList.remove("tilting"); card.style.removeProperty("--rx"); card.style.removeProperty("--ry"); }
+  });
+}
+
+// scroll-linked motion: progress bar and globe parallax
+if (M && !reduce) {
+  M.scroll(M.animate("#prog", { scaleX: [0, 1] }, { ease: "linear" }));
+  // parallax on the hero box (not #gwrap), so GSAP can move the globe itself into the drawer
+  M.scroll(M.animate("#globeBox", { y: [0, 70], scale: [1, .9], opacity: [1, .5] }, { ease: "linear" }), { target: $("hero"), offset: ["start start", "end start"] });
+} else {
+  addEventListener("scroll", () => { const h = document.documentElement; $("prog").style.transform = `scaleX(${Math.min(1, scrollY / Math.max(1, h.scrollHeight - innerHeight))})`; }, { passive: true });
+}
+
+// ---------- data ----------
+function ago(t) {
+  const m = Math.round((Date.now() - t) / 6e4);
+  if (m < 2) return "just now";
+  if (m < 90) return m + " minutes ago";
+  const hr = Math.round(m / 60);
+  return hr < 36 ? hr + " hours ago" : Math.round(hr / 24) + " days ago";
+}
+function show(d, offline) {
+  JOBS = d.jobs || [];
+  prepare();
+  payChart();
+  loaded = true;
+  $("asof").textContent = d.updatedAt
+    ? "Listings refreshed " + ago(d.updatedAt) + (offline ? " (saved copy, you are offline)" : "") + "; checked again every 6 hours."
+    : "Showing the starter list; the first automatic refresh has not run yet.";
+  buildChips(); syncChips(); render();
+}
+// ---------- insights: application progress strip + pay by role ----------
+const PIPE_CLS = { "To apply": "p-toapply", Applied: "p-applied", Interview: "p-interview", Offer: "p-offer", Rejected: "p-rejected" };
+function insights() {
+  const pipe = $("pipe"), counts = STATUSES.map(s => [s, JOBS.filter(j => get(j.id).s === s).length]);
+  if (pipe.children.length !== STATUSES.length) pipe.innerHTML = STATUSES.map(s => `<span class="${PIPE_CLS[s]}" style="flex-grow:0"></span>`).join("");
+  counts.forEach(([s, n], i) => { const el = pipe.children[i]; el.style.flexGrow = n; el.style.minWidth = n ? "8px" : "0"; el.title = `${s}: ${n}`; });
+  const tracked = JOBS.length - counts[0][1];
+  pipe.closest(".insights").classList.toggle("empty", !tracked); // phones hide the empty progress card
+  $("pipeNote").textContent = loaded ? `${tracked} of ${JOBS.length} tracked` : "";
+  $("pipeLegend").innerHTML = counts.map(([s, n]) => `<li><i class="${PIPE_CLS[s]}"></i>${s} <b>${n}</b></li>`).join("");
+}
+function payChart() {
+  const by = {};
+  JOBS.forEach(j => { if (j.p > 0 && j.cat) (by[j.cat] ||= []).push(j.p); });
+  const rows = Object.entries(by).filter(([, a]) => a.length >= 2)
+    .map(([k, a]) => { a.sort((x, y) => x - y); return [k, a[Math.floor(a.length / 2)], a.length]; })
+    .sort((a, b) => b[1] - a[1]);
+  const max = Math.max(1, ...rows.map(r => r[1]));
+  $("paychart").innerHTML = rows.length
+    ? rows.map(([k, med, n]) => `<div class="pc-row" title="${CATS[k]}: median ₹${med}k per month across ${n} listings"><span class="pc-l">${CATS[k]}</span><span class="pc-bar"><i style="--w:${Math.round(med / max * 100)}%"></i></span><span class="pc-v">₹${med}k <small>· ${n}</small></span></div>`).join("")
+    : `<p class="muted">Not enough listings show pay yet.</p>`;
+}
+
+// ---------- feedback: confetti for offers, optional sound + haptics ----------
+function confetti() {
+  if (reduce) return;
+  const cv = $("confetti"), ctx = cv.getContext("2d"), dpr = Math.min(devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.display = "block";
+  const cols = ["#0a6a62", "#4fd1c0", "#f59e0b", "#3b82f6", "#ef4444", "#a3e635"];
+  const P = Array.from({ length: 150 }, () => ({ x: W / 2, y: H * .38, vx: (Math.random() - .5) * 15, vy: -Math.random() * 14 - 4, r: Math.random() * 6 + 4, c: cols[Math.random() * cols.length | 0], a: Math.random() * 6, va: (Math.random() - .5) * .4 }));
+  const t0 = performance.now();
+  (function step(now) {
+    const t = (now - t0) / 1000;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    for (const p of P) {
+      p.vy += .35; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.a += p.va;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.globalAlpha = Math.max(0, 1 - t / 2.2); ctx.fillStyle = p.c; ctx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); ctx.restore();
+    }
+    if (t < 2.2) requestAnimationFrame(step); else { ctx.clearRect(0, 0, W, H); cv.style.display = "none"; }
+  })(t0);
+}
+let actx = null;
+function beep(notes) {
+  try {
+    actx ||= new (window.AudioContext || window.webkitAudioContext)();
+    notes.forEach((hz, i) => {
+      const o = actx.createOscillator(), g = actx.createGain(), at = actx.currentTime + i * .09;
+      o.type = "sine"; o.frequency.value = hz;
+      g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(.12, at + .015); g.gain.exponentialRampToValueAtTime(.0001, at + .22);
+      o.connect(g).connect(actx.destination); o.start(at); o.stop(at + .25);
+    });
+  } catch (e) {}
+}
+const TONES = { "To apply": [392], Applied: [523], Interview: [587, 784], Offer: [523, 659, 784, 1047], Rejected: [330, 262] };
+function feedback(s) {
+  if (s === "Offer") confetti();
+  if (!prefs.sound) return;
+  try { navigator.vibrate?.(s === "Offer" ? [30, 40, 30, 40, 60] : 18); } catch (e) {}
+  beep(TONES[s] || [440]);
+}
+function syncSound() { $("sound").textContent = "Sound: " + (prefs.sound ? "On" : "Off"); $("sound").setAttribute("aria-pressed", String(!!prefs.sound)); }
+$("sound").addEventListener("click", () => { prefs.sound = !prefs.sound; savePrefs(); syncSound(); if (prefs.sound) beep([523, 784]); });
+syncSound();
+
+// ---------- job detail drawer: description, tech stack, and a GSAP flight of the globe to the job's city ----------
+// Motion (Framer Motion's engine) keeps the list/toast springs; GSAP owns the drawer, the scrim and the globe here.
+const GS = window.gsap || null, FLIP = window.Flip || null;
+if (GS && FLIP) GS.registerPlugin(FLIP);
+const GROUPS = { fe: "Frontend", be: "Backend", mob: "Mobile", data: "Data / AI", ops: "Cloud / DevOps", qa: "Testing", cs: "Fundamentals" };
+const CAT_GROUPS = { fullstack: ["fe", "be"], frontend: ["fe"], mobile: ["mob"], backend: ["be"], data: ["data"], qa: ["qa"], devops: ["ops"], swe: ["be", "cs"] };
+// Shown only when a posting could not be read, and labelled as typical, not from the listing.
+const TYPICAL = {
+  fullstack: { about: ["Build features end to end: the UI, the APIs and the database behind them.", "Fix bugs across the stack and write tests for your changes.", "Take part in code review and ship to production with the team."], stack: [["React", "fe"], ["JavaScript", "fe"], ["Node.js", "be"], ["REST APIs", "be"], ["SQL", "data"], ["Git", "ops"]] },
+  frontend: { about: ["Turn designs into responsive, accessible web pages.", "Build reusable UI components and connect them to APIs.", "Measure and improve page speed, and fix UI bugs."], stack: [["React", "fe"], ["TypeScript", "fe"], ["HTML", "fe"], ["CSS", "fe"], ["Git", "ops"]] },
+  mobile: { about: ["Build app screens and features for Android and iOS.", "Connect APIs, push notifications and local storage.", "Test on real devices and fix crashes before release."], stack: [["Flutter", "mob"], ["Dart", "mob"], ["Kotlin", "mob"], ["Firebase", "data"], ["Git", "ops"]] },
+  backend: { about: ["Design and build APIs and background jobs.", "Model data and write efficient database queries.", "Add logging, tests and monitoring to services."], stack: [["Java", "be"], ["Python", "be"], ["Node.js", "be"], ["REST APIs", "be"], ["SQL", "data"], ["Git", "ops"]] },
+  data: { about: ["Clean, analyse and visualise data to answer product questions.", "Train and evaluate models, or build features on LLM APIs.", "Keep notebooks and pipelines reproducible."], stack: [["Python", "be"], ["SQL", "data"], ["Pandas", "data"], ["Machine Learning", "data"], ["LLMs / GenAI", "data"]] },
+  qa: { about: ["Write and run manual and automated test cases.", "Automate UI and API tests and run them in CI.", "Report bugs clearly and verify the fixes."], stack: [["Selenium", "qa"], ["Java", "be"], ["Postman", "qa"], ["SQL", "data"], ["Git", "ops"]] },
+  devops: { about: ["Set up and maintain CI/CD pipelines.", "Containerise services and manage cloud resources.", "Monitor systems and help respond to incidents."], stack: [["Linux", "ops"], ["Docker", "ops"], ["Kubernetes", "ops"], ["AWS", "ops"], ["CI/CD", "ops"], ["Git", "ops"]] },
+  swe: { about: ["Work on product features with an engineering team.", "Write clean, tested code and take part in code review.", "Learn the codebase, the tools and the release process."], stack: [["DSA", "cs"], ["OOP", "cs"], ["Java", "be"], ["Python", "be"], ["SQL", "data"], ["Git", "ops"]] },
+};
+const CITY_LL = Object.fromEntries((window.Globe?.cities || []).map(c => [c.name, c]));
+const detailCache = new Map();
+async function loadDetail(id) {
+  if (detailCache.has(id)) return detailCache.get(id);
+  let d = null;
+  try { const r = await fetch("/api/detail/" + encodeURIComponent(id)); if (r.ok) d = await r.json(); } catch (e) {}
+  detailCache.set(id, d);
+  return d;
+}
+function stackHTML(j) {
+  const own = j.stack && j.stack.length, stack = own ? j.stack : (TYPICAL[j.cat] || TYPICAL.swe).stack, guess = !own || j.stackGuess;
+  const mine = new Set(CAT_GROUPS[j.cat] || []), by = {};
+  stack.forEach(([n, g]) => (by[g] ||= []).push(n));
+  return Object.entries(GROUPS).filter(([g]) => by[g]).map(([g, label]) =>
+    `<div class="sg"><span class="sg-l">${label}</span>${by[g].map(n => `<span class="sk${mine.has(g) ? " on" : ""}${guess ? " guess" : ""}">${esc(n)}</span>`).join("")}</div>`).join("") +
+    (guess ? `<p class="d-hint">${own ? "Read from the job title only; the posting has not been read yet." : "Typical stack for this kind of role, not taken from the posting."}</p>` : "");
+}
+const listSec = (title, items) => items && items.length ? `<section class="d-sec"><h3>${title}</h3><ul class="d-list">${items.map(s => `<li>${esc(s)}</li>`).join("")}</ul></section>` : "";
+function detailHTML(j, d) {
+  if (!d) {
+    const t = TYPICAL[j.cat] || TYPICAL.swe;
+    return `<section class="d-sec"><h3>What this role usually involves</h3><p class="d-hint">This posting could not be read automatically, so this is typical for ${esc(CATS[j.cat] || "software")} roles, not taken from the listing. Open the posting for the real details.</p><ul class="d-list">${t.about.map(s => `<li>${esc(s)}</li>`).join("")}</ul></section>`;
+  }
+  const facts = Object.entries(d.facts || {}).filter(([k]) => !/^(title|location)$/.test(k));
+  return listSec("About the role", d.about) + listSec("Who can apply", d.eligibility) +
+    (d.perks && d.perks.length ? `<section class="d-sec"><h3>Perks</h3><div class="perks">${d.perks.map(p => `<span>${esc(p)}</span>`).join("")}</div></section>` : "") +
+    (facts.length ? `<section class="d-sec"><h3>Key facts</h3><dl class="d-kv">${facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl></section>` : "") +
+    (d.company ? `<section class="d-sec"><h3>About ${esc(j.co)}</h3><p class="d-p">${esc(d.company)}</p></section>` : "") +
+    `<p class="d-hint d-sec">Summary from ${esc(d.host || "the listing")}. Read the full posting for every detail before you apply.</p>`;
+}
+
+let drawerId = null, drawerFrom = null, drawerTl = null, flipTw = null, introTw = null;
+// Move the globe between the hero and the drawer stage; GSAP Flip animates it when both ends are on screen.
+function moveGlobe(toStage, animate) {
+  const gw = $("gwrap"), dest = toStage ? $("dGlobe") : $("globeBox");
+  if (!gw || !dest || gw.parentElement === dest) return;
+  const onScreen = r => r.width > 0 && r.bottom > 0 && r.top < innerHeight;
+  const from = gw.getBoundingClientRect(), state = animate && FLIP ? FLIP.getState(gw) : null;
+  flipTw?.kill();
+  dest.insertBefore(gw, dest.firstChild);
+  if (!state) return;
+  if (onScreen(from) && onScreen(gw.getBoundingClientRect())) flipTw = FLIP.from(state, { duration: .5, ease: "power3.inOut", absolute: true });
+  else flipTw = GS.fromTo(gw, { opacity: 0, scale: .7 }, { opacity: 1, scale: 1, duration: .5, ease: "back.out(1.5)", clearProps: "transform,opacity" });
+}
+// Camera flight: pull back while turning, then dive onto the city (or an India overview for pan-India roles).
+function flyCamera(tl, tgt, at) {
+  const G = window.Globe;
+  if (!G) return;
+  const cam = G.manual(true), lon = tgt ? tgt.lon : 77.5, lat = tgt ? tgt.lat : 21, zoom = tgt ? 2.6 : 1.15;
+  const dl = ((lon - cam.lon + 540) % 360) - 180;
+  if (!tl) { Object.assign(cam, { lon: cam.lon + dl, lat, zoom }); G.redraw(); return; }
+  tl.to(cam, { lon: cam.lon + dl * .5, lat: (cam.lat + lat) / 2, zoom: Math.min(cam.zoom, .42), duration: .36, ease: "power2.inOut" }, at)
+    .to(cam, { lon: cam.lon + dl, lat, zoom, duration: .78, ease: "power3.inOut" }, ">-.06");
+}
+// Shared-element flight: the card's logo lifts off the card and lands in the panel header, flipping over once
+// on the way. A fixed-position copy does the flying; the real header logo appears when it lands.
+function flyLogo(tl, from, to) {
+  if (!from || !to) return;
+  const a = from.getBoundingClientRect(), b = to.getBoundingClientRect();
+  if (!a.width || a.bottom < 0 || a.top > innerHeight) return;
+  const g = to.cloneNode(true);
+  g.classList.add("ghost");
+  g.querySelector("img")?.addEventListener("error", () => { g.classList.remove("logo"); g.querySelector("img")?.remove(); });
+  Object.assign(g.style, { left: b.left + "px", top: b.top + "px", width: b.width + "px", height: b.height + "px" });
+  document.body.append(g);
+  to.style.visibility = "hidden";
+  const land = () => { to.style.visibility = ""; g.remove(); };
+  tl.fromTo(g, { x: a.left + a.width / 2 - b.left - b.width / 2, y: a.top + a.height / 2 - b.top - b.height / 2, z: 0, scale: a.width / b.width, rotationY: 0, transformPerspective: 700 },
+    { x: 0, y: 0, z: 0, scale: 1, rotationY: 360, duration: .62, ease: "power3.inOut", onComplete: land }, 0);
+}
+function openDrawer(id, refresh) {
+  const j = JOBS.find(x => x.id === id), dr = $("drawer");
+  if (!j) return;
+  const st = get(id), d = daysLeft(j);
+  if (refresh) { dr.dataset.s = st.s; if ($("dStatus")) $("dStatus").value = st.s; return; }
+  if (drawerId) return;
+  const srcAv = document.querySelector(`.job[data-id="${id}"] .av`);
+  const logos = [j.domain ? "/logo/" + j.domain : "", j.logo].filter(Boolean);
+  let host = "";
+  try { host = new URL(j.url).hostname.replace(/^www\./, ""); } catch (e) {}
+  const cities = j.cities.map(c => c === "Multiple" ? "Multiple cities" : c).join(", ");
+  dr.dataset.s = st.s;
+  dr.innerHTML = `
+    <div class="d-head d-sec">
+      <div class="av big${logos.length ? " logo" : ""}" style="--h:${hue(j.co)}" aria-hidden="true"><span class="ini">${esc(j.co.trim().charAt(0).toUpperCase() || "?")}</span>${logos.length ? `<img src="${esc(logos[0])}" data-next="${esc(logos[1] || "")}" alt="" referrerpolicy="no-referrer">` : ""}</div>
+      <div><p class="eyebrow">${j.tier === 2 ? "Top MNC · " : ""}${T[j.type]}</p><h2 id="dTitle">${esc(j.co)}</h2><p class="d-role">${esc(j.role)}</p></div>
+      <button type="button" class="d-close" id="dClose" aria-label="Close details">×</button>
+    </div>
+    <div class="d-globe" id="dGlobe" aria-hidden="true"></div>
+    <section class="d-sec"><h3>Tech stack</h3>${stackHTML(j)}</section>
+    <dl class="d-facts d-sec">
+      <div><dt>City</dt><dd>${esc(cities)}</dd></div>
+      <div><dt>Pay</dt><dd class="mono">${esc(j.pay)}</dd></div>
+      <div><dt>Role group</dt><dd>${esc(CATS[j.cat] || "General")}</dd></div>
+      <div><dt>Listed</dt><dd>${j.added ? "Found " + ago(j.added) : "From the starter list"}</dd></div>
+      ${d !== null ? `<div><dt>Deadline</dt><dd>${d < 0 ? "Closed" : d <= 1 ? "Last day" : d + " days left"}</dd></div>` : ""}
+      <div><dt>Apply on</dt><dd>${esc(host)}</dd></div>
+    </dl>
+    <div id="dBody"><div class="d-load d-sec"><i></i><i></i><i class="short"></i><i></i></div></div>
+    ${j.note ? `<p class="d-note d-sec">${esc(j.note)}</p>` : ""}
+    <div class="d-track d-sec">
+      <label class="d-label" for="dStatus">Your status</label>
+      <select id="dStatus" class="st">${STATUSES.map(s => `<option${s === st.s ? " selected" : ""}>${s}</option>`).join("")}</select>
+      <label class="d-label" for="dNote">Your notes</label>
+      <textarea id="dNote" rows="4" placeholder="Referral, interview dates, contacts"></textarea>
+    </div>
+    <div class="d-actions d-sec">
+      <a class="go" href="${esc(j.url)}" target="_blank" rel="noopener">Apply on ${esc(host || "site")} <span class="ar">↗</span></a>
+      <a class="ibtn" id="dOfficial" href="#" target="_blank" rel="noopener" hidden>Company careers page ↗</a>
+      <button type="button" class="ibtn" id="dCopy">Copy link</button>
+    </div>`;
+  $("dNote").value = st.n;
+  drawerId = id;
+  drawerFrom = document.activeElement;
+  if (history.state?.jt !== "drawer") history.pushState({ jt: "drawer" }, ""); // the phone's back button closes the panel
+  $("scrim").hidden = false; dr.hidden = false;
+  document.documentElement.style.overflow = "hidden";
+  const tgt = j.cities.map(c => CITY_LL[c]).find(Boolean) || null;
+  window.Globe?.highlight(j.cities);
+  window.Globe?.target(tgt ? tgt.name : null);
+
+  drawerTl?.kill(); introTw?.kill();
+  if (GS && !reduce) {
+    const tl = drawerTl = GS.timeline();
+    flyLogo(tl, srcAv, dr.querySelector(".av.big")); // measured before the drawer moves
+    // the panel swings in like a door hinged on the right edge, its sections tip up one after another
+    tl.fromTo(dr, { xPercent: 100, rotationY: -24, transformPerspective: 1600, transformOrigin: "100% 50%" }, { xPercent: 0, rotationY: 0, duration: .46, ease: "power4.out" }, 0)
+      .fromTo("#scrim", { opacity: 0 }, { opacity: 1, duration: .2, ease: "none" }, 0)
+      .from(dr.querySelectorAll(":scope > .d-sec"), { y: 14, rotationX: -14, transformPerspective: 900, transformOrigin: "50% 0%", opacity: 0, stagger: .03, duration: .32, ease: "power2.out", clearProps: "transform,opacity" }, .1)
+      .add(() => moveGlobe(true, true), .36);
+    flyCamera(tl, tgt, .45);
+  } else { moveGlobe(true, false); flyCamera(null, tgt); }
+  $("dClose").focus({ preventScroll: true });
+
+  loadDetail(id).then(det => {
+    if (drawerId !== id) return;
+    $("dBody").innerHTML = detailHTML(j, det && !det.none ? det : null);
+    if (det && det.official) { const o = $("dOfficial"); o.href = det.official; o.hidden = false; }
+    if (GS && !reduce) GS.from("#dBody .d-sec", { y: 12, rotationX: -12, transformPerspective: 900, transformOrigin: "50% 0%", opacity: 0, stagger: .035, duration: .3, ease: "power2.out", clearProps: "transform,opacity" });
+  });
+}
+function closeDrawer(fromPop) {
+  if (!drawerId) return;
+  // closing from the UI steps back through history; the popstate handler then does the actual close
+  if (fromPop !== true && history.state?.jt === "drawer") { history.back(); return; }
+  const dr = $("drawer"), G = window.Globe;
+  drawerId = null;
+  document.documentElement.style.overflow = "";
+  G?.highlight([]); G?.target(null);
+  const finish = () => { dr.hidden = true; $("scrim").hidden = true; dr.innerHTML = ""; GS?.set(dr, { clearProps: "transform" }); };
+  drawerTl?.kill();
+  document.querySelectorAll(".ghost").forEach(n => n.remove());
+  if (GS && !reduce) {
+    const cam = G?.manual(true);
+    const tl = drawerTl = GS.timeline({ onComplete: () => { G?.manual(false); finish(); } });
+    if (cam) { const dl = ((77 - cam.lon + 540) % 360) - 180; tl.to(cam, { lon: cam.lon + dl, lat: 20, zoom: .38, duration: .4, ease: "power2.inOut" }, 0); }
+    tl.add(() => moveGlobe(false, true), .22)
+      .to(dr, { xPercent: 100, rotationY: -18, transformPerspective: 1600, transformOrigin: "100% 50%", duration: .32, ease: "power3.in" }, .26)
+      .to("#scrim", { opacity: 0, duration: .2 }, .3);
+  } else { moveGlobe(false, false); G?.manual(false); finish(); }
+  if (drawerFrom && document.contains(drawerFrom)) drawerFrom.focus({ preventScroll: true });
+}
+$("drawer").addEventListener("click", e => {
+  if (e.target.closest("#dClose")) return closeDrawer();
+  if (e.target.closest("#dCopy")) {
+    const j = JOBS.find(x => x.id === drawerId);
+    if (!j) return;
+    navigator.clipboard?.writeText(j.url).then(() => toast("Link copied"), () => toast("Could not copy. Long-press the Apply button to copy the link."));
+  }
+});
+$("drawer").addEventListener("change", e => { if (e.target.id === "dStatus" && drawerId) setStatus(drawerId, e.target.value); });
+$("drawer").addEventListener("input", e => {
+  if (e.target.id !== "dNote" || !drawerId) return;
+  get(drawerId).n = e.target.value; persist();
+  const card = document.querySelector(`.job[data-id="${drawerId}"]`);
+  if (card) { card.querySelector(".note").value = e.target.value; card.querySelector(".notebtn").classList.toggle("has", !!e.target.value); }
+});
+$("drawer").addEventListener("error", e => {
+  const img = e.target;
+  if (!(img instanceof HTMLImageElement)) return;
+  if (img.dataset.next) { const n = img.dataset.next; img.dataset.next = ""; img.src = n; }
+  else { img.closest(".av").classList.remove("logo"); img.remove(); }
+}, true);
+$("scrim").addEventListener("click", closeDrawer);
+addEventListener("keydown", e => { if (e.key === "Escape" && drawerId) closeDrawer(); });
+// open from a card click (not from its own controls) or Enter on a focused card
+$("view").addEventListener("click", e => {
+  if (e.target.closest("a, button, select, input, textarea, label")) return;
+  const job = e.target.closest(".job");
+  if (job) openDrawer(job.dataset.id);
+});
+$("view").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.classList?.contains("job")) openDrawer(e.target.dataset.id); });
+
+// ---------- globe follows the hovered card ----------
+if (fine) {
+  let hovered = null;
+  $("view").addEventListener("pointerover", e => {
+    const job = e.target.closest(".job");
+    if (job === hovered) return;
+    hovered = job;
+    if (job) loadDetail(job.dataset.id); // warm the details so the panel opens with them already loaded
+    if (drawerId) return;
+    const j = job && JOBS.find(x => x.id === job.dataset.id);
+    window.Globe?.highlight(j ? j.cities : []);
+  });
+  $("view").addEventListener("pointerleave", () => { hovered = null; if (!drawerId) window.Globe?.highlight([]); });
+}
+
+// ---------- first-visit welcome ----------
+(function welcome() {
+  let seen = false;
+  try { seen = localStorage.getItem("jt-welcome") === "1"; } catch (e) {}
+  if (seen) return;
+  const w = $("welcome");
+  w.hidden = false;
+  $("wDone").addEventListener("click", () => {
+    try { localStorage.setItem("jt-welcome", "1"); } catch (e) {}
+    if (M && !reduce) { M.animate(w, { opacity: [1, 0], y: [0, -10] }, { duration: .25 }); setTimeout(() => { w.hidden = true; }, 260); }
+    else w.hidden = true;
+  });
+})();
+
+// ---------- phone layout: Filters bottom sheet, back button, swipe gestures ----------
+const mqM = matchMedia("(max-width: 760px)");
+const sheetItems = ["status", "sort", "cityChips", "catChips", "typeChips", "quickChips", "viewSeg", "theme", "sound", "export", "payCard"].map(id => $(id));
+const slots = sheetItems.map(n => { const c = document.createComment("slot"); n.parentNode.insertBefore(c, n); return c; });
+let sheetTl = null;
+// On phones the filter controls move into the sheet; on wider screens they go back to their places.
+function placeControls() {
+  if (mqM.matches) {
+    const row = (...els) => { const d = document.createElement("div"); d.className = "sheet-row"; d.append(...els); return d; };
+    const [st, so, ci, ca, ty, qu, vs, th, sn, ex, pc] = sheetItems;
+    $("sheetBody").replaceChildren(row(st, so), ci, ca, ty, qu, row(vs, th), row(sn, ex), pc);
+  } else {
+    sheetItems.forEach((n, i) => slots[i].parentNode.insertBefore(n, slots[i].nextSibling));
+    $("sheetBody").replaceChildren();
+    if (!$("sheet").hidden) closeSheet(true);
+  }
+}
+function openSheet() {
+  const sh = $("sheet");
+  if (!sh.hidden) return;
+  sh.hidden = false; $("sheetScrim").hidden = false;
+  document.documentElement.style.overflow = "hidden";
+  $("filtersBtn").setAttribute("aria-expanded", "true");
+  if (history.state?.jt !== "sheet") history.pushState({ jt: "sheet" }, "");
+  sheetTl?.kill();
+  if (GS && !reduce) sheetTl = GS.timeline()
+    .fromTo(sh, { yPercent: 100, y: 0 }, { yPercent: 0, duration: .32, ease: "power4.out" }, 0)
+    .fromTo("#sheetScrim", { opacity: 0 }, { opacity: 1, duration: .2 }, 0);
+  $("sheetDone").focus({ preventScroll: true });
+}
+function closeSheet(fromPop) {
+  const sh = $("sheet");
+  if (sh.hidden) return;
+  if (fromPop !== true && history.state?.jt === "sheet") { history.back(); return; }
+  $("filtersBtn").setAttribute("aria-expanded", "false");
+  if (!drawerId) document.documentElement.style.overflow = "";
+  const done = () => { sh.hidden = true; $("sheetScrim").hidden = true; GS?.set(sh, { clearProps: "transform" }); };
+  sheetTl?.kill();
+  if (GS && !reduce) sheetTl = GS.timeline({ onComplete: done })
+    .to(sh, { yPercent: 100, duration: .22, ease: "power2.in" }, 0)
+    .to("#sheetScrim", { opacity: 0, duration: .18 }, 0);
+  else done();
+}
+addEventListener("popstate", () => { if (drawerId) closeDrawer(true); else if (!$("sheet").hidden) closeSheet(true); });
+$("filtersBtn").addEventListener("click", openSheet);
+$("sheetReset").addEventListener("click", () => $("clear").click());
+$("sheetScrim").addEventListener("click", () => closeSheet());
+$("sheetDone").addEventListener("click", () => {
+  closeSheet();
+  setTimeout(() => scrollTo({ top: Math.max(0, $("view").getBoundingClientRect().top + scrollY - 76), behavior: reduce ? "auto" : "smooth" }), 320);
+});
+addEventListener("keydown", e => { if (e.key === "Escape" && !$("sheet").hidden) closeSheet(); });
+// drag the sheet down by its header to close it
+(() => {
+  let s = null;
+  const sh = $("sheet"), head = $("sheetHead");
+  head.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse" && !e.target.closest("button")) s = e.clientY; });
+  head.addEventListener("pointermove", e => { if (s !== null && GS) GS.set(sh, { y: Math.max(0, e.clientY - s) }); });
+  const end = e => { if (s === null) return; const dy = e.clientY - s; s = null; if (dy > 80) closeSheet(); else GS?.to(sh, { y: 0, duration: .25, ease: "power2.out" }); };
+  head.addEventListener("pointerup", end); head.addEventListener("pointercancel", end);
+})();
+// swipe the job panel's header to the right to close it
+(() => {
+  let s = null;
+  const dr = $("drawer");
+  dr.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse" && e.target.closest(".d-head") && !e.target.closest("button")) s = e.clientX; });
+  dr.addEventListener("pointermove", e => { if (s !== null && GS) GS.set(dr, { x: Math.max(0, e.clientX - s) }); });
+  const end = e => { if (s === null) return; const dx = e.clientX - s; s = null; if (dx > 80) closeDrawer(); else GS?.to(dr, { x: 0, duration: .25, ease: "power2.out" }); };
+  dr.addEventListener("pointerup", end); dr.addEventListener("pointercancel", end);
+})();
+placeControls();
+mqM.addEventListener("change", placeControls);
+// touch screens: start loading a job's details as soon as the finger lands on its card
+$("view").addEventListener("pointerdown", e => { const job = e.target.closest(".job"); if (job && e.pointerType !== "mouse") loadDetail(job.dataset.id); }, { passive: true });
+
+applyTheme(); syncChips(); render();
+window.Globe?.init({
+  canvas: $("globe"), tip: $("gtip"),
+  onPick(name) { f.city = f.city === name ? "" : name; window.Globe.focus(f.city); changed(); },
+});
+// Intro: the globe swings in from the far side of the planet and settles over India, then hands back to the idle spin.
+if (window.Globe && GS && !reduce) {
+  const cam = Globe.manual(true), home = { ...cam };
+  Object.assign(cam, { lon: home.lon - 160, lat: -24, zoom: .14 });
+  introTw = GS.to(cam, { lon: home.lon, lat: home.lat, zoom: home.zoom, duration: 2, delay: .1, ease: "expo.out",
+    onComplete: () => { introTw = null; if (!drawerId) Globe.manual(false); } });
+}
+// The hero title leans toward the mouse in 3D.
+if (fine && !reduce && M) {
+  const h1 = document.querySelector("h1"), hero = $("hero"), spring = { type: "spring", stiffness: 150, damping: 18 };
+  let pend = null;
+  hero.addEventListener("pointermove", e => {
+    if (!pend) requestAnimationFrame(() => {
+      const r = hero.getBoundingClientRect(), x = (pend.clientX - r.left) / r.width - .5, y = (pend.clientY - r.top) / r.height - .5;
+      pend = null;
+      M.animate(h1, { rotateY: x * 16, rotateX: -y * 14 }, spring);
+    });
+    pend = e;
+  });
+  hero.addEventListener("pointerleave", () => M.animate(h1, { rotateY: 0, rotateX: 0 }, spring));
+}
+(async () => {
+  try {
+    const d = await (window.__jobsReq || fetch("/api/jobs", { cache: "no-cache" }).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status))));
+    try { localStorage.setItem(CACHE, JSON.stringify(d)); } catch (e) {}
+    show(d, false);
+  } catch (e) {
+    let c = null;
+    try { c = JSON.parse(localStorage.getItem(CACHE)); } catch (x) {}
+    if (c) show(c, true);
+    else { loaded = true; $("asof").textContent = "Could not load listings. Check your connection and reload."; buildChips(); render(); }
+  }
+})();
+</script>
+</body>
+</html>

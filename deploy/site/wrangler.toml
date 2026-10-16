@@ -1,0 +1,7 @@
+name = "job-tracker-2027"
+pages_build_output_dir = "public"
+compatibility_date = "2025-09-01"
+
+[[kv_namespaces]]
+binding = "JOBS"
+id = "20fce3af6d334418b59994d5dfdef609"

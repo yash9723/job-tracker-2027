@@ -1,0 +1,11 @@
+name = "job-tracker-refresh"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = false # cron-only: no public URL, so no workers.dev subdomain is needed
+
+[triggers]
+crons = ["0 */6 * * *", "7,22,37,52 * * * *"]
+
+[[kv_namespaces]]
+binding = "JOBS"
+id = "20fce3af6d334418b59994d5dfdef609"
