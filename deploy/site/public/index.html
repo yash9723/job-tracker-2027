@@ -363,16 +363,14 @@ body::after { content: ""; position: fixed; inset: -20%; z-index: -1; pointer-ev
 #dOfficial[hidden] { display: none; }
 #dBody { display: flex; flex-direction: column; gap: 14px; }
 
-/* title: live pill, gradient year with one light sweep, hand-drawn underline */
+/* title: live pill, accent year, hand-drawn underline */
 .eyebrow.live { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; padding: 5px 11px 5px 9px; border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .eyebrow .sep { opacity: .5; }
 .eyebrow .dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 .eyebrow .dot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--accent); animation: ping 2.2s cubic-bezier(0, 0, .2, 1) infinite; }
 @keyframes ping { 75%, 100% { transform: scale(2.6); opacity: 0; } }
-h1 .yr { background: linear-gradient(100deg, var(--accent) 0%, var(--blob2) 38%, color-mix(in srgb, var(--accent) 60%, #fff) 50%, var(--blob2) 62%, var(--accent) 100%);
-  background-size: 250% 100%; background-position: 100% 0; -webkit-background-clip: text; background-clip: text; color: transparent; animation: sheen 1.8s 1s var(--ease) both; }
-@keyframes sheen { from { background-position: 100% 0; } to { background-position: 0 0; } }
+h1 .yr { color: var(--accent); }
 h1 .hl { position: relative; white-space: nowrap; }
 .swoosh { position: absolute; left: -2%; width: 104%; bottom: -.16em; height: .3em; overflow: visible; }
 .swoosh path { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; vector-effect: non-scaling-stroke; stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw .9s .75s var(--ease) forwards; }
