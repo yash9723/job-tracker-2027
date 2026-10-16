@@ -10,6 +10,7 @@ Live: https://job-tracker-2027.pages.dev
 - `deploy/tools` – one-off generators for the globe's land map (`land.js`).
 
 ## Deploy
+Pushes to `main` deploy automatically (`.github/workflows/deploy.yml`, needs repo secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`). To deploy by hand:
 ```bash
 cd deploy/worker && npx wrangler deploy
 cd deploy/site && npx wrangler pages deploy --project-name job-tracker-2027 --branch main

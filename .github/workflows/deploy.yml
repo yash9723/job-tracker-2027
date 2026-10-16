@@ -1,0 +1,37 @@
+# Deploys to Cloudflare on every push to main: the Pages site when deploy/site changes,
+# the refresh Worker when deploy/worker changes. Needs repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+name: Deploy
+on:
+  push:
+    branches: [main]
+    paths: ["deploy/site/**", "deploy/worker/src/**", "deploy/worker/wrangler.toml", ".github/workflows/deploy.yml"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
+      - name: What changed
+        id: changed
+        run: |
+          files=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "deploy/site deploy/worker")
+          echo "site=$(echo "$files" | grep -qE '^(deploy/site/|\.github/)' && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "worker=$(echo "$files" | grep -qE '^deploy/worker/' && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Deploy site (Pages)
+        if: steps.changed.outputs.site == 'true' || github.event_name == 'workflow_dispatch'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: deploy/site
+          command: pages deploy --project-name job-tracker-2027 --branch main
+      - name: Deploy refresh Worker
+        if: steps.changed.outputs.worker == 'true' || github.event_name == 'workflow_dispatch'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: deploy/worker
+          command: deploy
