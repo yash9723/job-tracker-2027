@@ -236,7 +236,7 @@ body::after { content: ""; position: fixed; inset: -20%; z-index: -1; pointer-ev
   animation: drift 28s ease-in-out infinite alternate; }
 @keyframes drift { to { transform: translate(6%, -5%) rotate(8deg); } }
 
-.card, .bar, .panel, .stats, .ins-card, .welcome, .drawer, .seg, .ibtn, .more, .toast, .gtip, input[type="search"], select:not(.st), .note {
+.card, .bar, .panel, .stats, .ins-card, .drawer, .seg, .ibtn, .more, .toast, .gtip, input[type="search"], select:not(.st), .note {
   background: var(--glass-bg); border: 1px solid var(--glass-border);
   -webkit-backdrop-filter: blur(var(--blur, 14px)) saturate(1.5); backdrop-filter: blur(var(--blur, 14px)) saturate(1.5);
   box-shadow: inset 0 1px 0 var(--glass-hi), 0 14px 34px -22px var(--glass-shadow);
@@ -254,7 +254,7 @@ body::after { content: ""; position: fixed; inset: -20%; z-index: -1; pointer-ev
 /* ---- insights: application progress + pay by role ---- */
 .insights { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 14px; }
 .ins-card { padding: 16px 18px; border-radius: 14px; min-width: 0; }
-.ins-card h2, .welcome h2 { margin: 0 0 12px; font: 600 15px var(--body); }
+.ins-card h2 { margin: 0 0 12px; font: 600 15px var(--body); }
 .ins-card h2 small { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--muted); }
 .pipe { display: flex; gap: 2px; height: 12px; border-radius: 999px; overflow: hidden; background: var(--line); }
 .pipe span { min-width: 0; transition: flex-grow .8s var(--ease), min-width .8s var(--ease); }
@@ -274,11 +274,7 @@ body::after { content: ""; position: fixed; inset: -20%; z-index: -1; pointer-ev
 .pc-v small { font-size: 11px; color: var(--muted); }
 .muted { color: var(--muted); margin: 0; font-size: 13px; }
 
-/* ---- welcome card (first visit) ---- */
-.welcome { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; padding: 16px 18px; border-radius: 14px; }
-.welcome[hidden], .scrim[hidden], .drawer[hidden] { display: none; }
-.welcome ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
-.welcome b { color: var(--fg); }
+.scrim[hidden], .drawer[hidden] { display: none; }
 
 /* ---- deadline ring around the logo: fills as the deadline nears ---- */
 .av { position: relative; }
@@ -387,7 +383,6 @@ h1 .hl { position: relative; white-space: nowrap; }
 @media (max-width: 760px) {
   .hero { grid-template-columns: 1fr; }
   .insights { grid-template-columns: 1fr; }
-  .welcome { flex-direction: column; }
   .drawer { border-radius: 0; }
   .d-globe { height: 200px; }
   .sg-l { width: 100%; }
@@ -505,7 +500,7 @@ body::after { animation: none; }
    back as it scrolls out. Runs on the compositor, so it costs no JavaScript while scrolling. */
 .hero-copy { perspective: 900px; transform-origin: 50% 100%; }
 @supports (animation-timeline: view()) {
-  .list .job:not(.in), .insights, .welcome, .panel, .foot {
+  .list .job:not(.in), .insights, .panel, .foot {
     animation: scrollrise linear both; animation-timeline: view(); animation-range: entry 0% entry 75%; }
   .hero-copy { animation: heroout linear both; animation-timeline: view(); animation-range: exit 0% exit 100%; }
   /* globe parallax: sinks and shrinks as the hero scrolls away (individual translate/scale, so the fade-in keeps transform) */
@@ -536,6 +531,24 @@ body::after { animation: none; }
 @media (pointer: coarse) {
   .job:active:not(:has(a:active, button:active, select:active, input:active)) .card { --press: .975; transition-duration: .1s; }
 }
+/* first-visit tour: the spotlight is a hole cut by a huge shadow; the tip card follows it */
+.tour { position: fixed; inset: 0; z-index: 11; touch-action: none; }
+.tour[hidden], .tour [hidden] { display: none; }
+.tour-spot { position: fixed; left: 50%; top: 50%; width: 0; height: 0; border-radius: 14px; pointer-events: none;
+  box-shadow: 0 0 0 2px var(--accent), 0 0 0 7px color-mix(in srgb, var(--accent) 22%, transparent), 0 0 0 200vmax rgba(4, 9, 15, .62); }
+.tour-spot.none { box-shadow: 0 0 0 200vmax rgba(4, 9, 15, .62); }
+.tour-tip { position: fixed; left: 50%; top: 50%; width: min(340px, calc(100vw - 32px)); padding: 18px 18px 14px; border-radius: 16px; color: var(--fg);
+  background: var(--glass-strong); border: 1px solid var(--glass-border); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: inset 0 1px 0 var(--glass-hi), 0 26px 60px -22px rgba(0, 0, 0, .65); }
+.tour-step { margin: 0 0 6px; font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.tour-tip h2 { margin: 0 0 6px; font: 700 20px/1.2 var(--display); }
+.tour-text { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.tour-dots { display: flex; gap: 5px; margin-top: 14px; }
+.tour-dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--line); transition: width .3s var(--ease), background .3s; }
+.tour-dots i.on { width: 18px; background: var(--accent); }
+.tour-nav { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.tour-nav .linkbtn { margin-right: auto; color: var(--muted); font-weight: 500; }
+.tour-nav .go { border: 0; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -557,17 +570,6 @@ body::after { animation: none; }
     </div>
   </header>
 
-  <section class="welcome" id="welcome" hidden aria-label="How this tracker works">
-    <div>
-      <h2>Welcome to your 2027 job tracker</h2>
-      <ol>
-        <li><b>Filter</b> by city, role group or Top MNCs, or click a city on the globe.</li>
-        <li><b>Track</b> each job's status and notes. They stay saved in this browser.</li>
-        <li><b>Apply</b> opens the official posting in a new tab. Click any card for full details.</li>
-      </ol>
-    </div>
-    <button type="button" class="ibtn" id="wDone">Got it</button>
-  </section>
 
   <section class="insights" aria-label="Your progress and pay by role">
     <div class="ins-card">
@@ -622,6 +624,7 @@ body::after { animation: none; }
   <main id="view" class="list" aria-live="polite"></main>
 
   <footer class="foot" id="foot">
+    <p><button type="button" class="linkbtn" id="tourReplay">Replay the tour</button></p>
     <p class="narrow-only">“exp.” means the pay is an estimate from a listing site, not from the employer.</p>
     <p>Status and notes are saved in this browser only. Apply on each company's own careers page, and never pay a fee to apply.</p>
     <p>Almost no big company labels a 2027 role “frontend” or “full stack”. Most are general SWE internships with a coding round, so practise data structures alongside your projects.</p>
@@ -637,6 +640,16 @@ body::after { animation: none; }
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle" hidden></aside>
 <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 <div class="toast" id="toast" role="status" hidden></div>
+<div class="tour" id="tour" hidden>
+  <div class="tour-spot" id="tourSpot"></div>
+  <div class="tour-tip" id="tourTip" role="dialog" aria-modal="true" aria-labelledby="tourTitle" aria-describedby="tourText">
+    <p class="tour-step" id="tourStep"></p>
+    <h2 id="tourTitle"></h2>
+    <p class="tour-text" id="tourText"></p>
+    <div class="tour-dots" id="tourDots" aria-hidden="true"></div>
+    <div class="tour-nav"><button type="button" class="linkbtn" id="tourSkip">Skip tour</button><button type="button" class="ibtn" id="tourBack">Back</button><button type="button" class="go" id="tourNext">Next</button></div>
+  </div>
+</div>
 
 <script src="/motion.js"></script>
 <script src="/land.js?v=2"></script>
@@ -1071,6 +1084,7 @@ function show(d, offline) {
     ? "Listings refreshed " + ago(d.updatedAt) + (offline ? " (saved copy, you are offline)" : "") + "; checked again every 6 hours."
     : "Showing the starter list; the first automatic refresh has not run yet.";
   buildChips(); syncChips(); render();
+  maybeTour();
 }
 // ---------- insights: application progress strip + pay by role ----------
 const PIPE_CLS = { "To apply": "p-toapply", Applied: "p-applied", Interview: "p-interview", Offer: "p-offer", Rejected: "p-rejected" };
@@ -1361,19 +1375,88 @@ if (fine) {
   $("view").addEventListener("pointerleave", () => { hovered = null; if (!drawerId) window.Globe?.highlight([]); });
 }
 
-// ---------- first-visit welcome ----------
-(function welcome() {
-  let seen = false;
-  try { seen = localStorage.getItem("jt-welcome") === "1"; } catch (e) {}
-  if (seen) return;
-  const w = $("welcome");
-  w.hidden = false;
-  $("wDone").addEventListener("click", () => {
-    try { localStorage.setItem("jt-welcome", "1"); } catch (e) {}
-    if (M && !reduce) { M.animate(w, { opacity: [1, 0], y: [0, -10] }, { duration: .25 }); setTimeout(() => { w.hidden = true; }, 260); }
-    else w.hidden = true;
-  });
-})();
+// ---------- first-visit walkthrough: a spotlight moves over the page one step at a time ----------
+const TOUR_KEY = "jt-tour";
+const firstJob = sel => document.querySelector("#view .job" + (sel ? " " + sel : ""));
+const STEPS = [
+  { title: "Welcome to your 2027 job tracker", text: () => `${JOBS.length} frontend, full stack and Flutter openings across Tier 1 cities, refreshed every 6 hours. Here is a 30-second tour.` },
+  { el: () => $("globeBox"), title: "Explore by city", text: "Drag to spin the globe. Tap a city to show only its jobs." },
+  { el: () => document.querySelector(".field"), title: "Search anything", text: "Type a company, a role or a skill such as React or Flutter." },
+  { el: () => mqM.matches ? $("filtersBtn") : document.querySelector(".panel"), title: "Narrow it down",
+    text: () => mqM.matches ? "Open Filters for city, role, Top MNCs, minimum pay, sorting and the board view." : "Filter by city, role, company type, Top MNCs and minimum pay." },
+  { el: () => firstJob(".ctl"), title: "Track every application", text: "Set each job's status, from To apply to Offer, and keep notes. It all stays saved in this browser." },
+  { el: () => firstJob(".go"), title: "Apply on the original posting", text: "Apply opens the listing in a new tab. Never pay a fee to apply." },
+  { el: () => firstJob(".card"), title: "See the full picture", text: "Tap any card for the description, the required tech stack and a 3D flight to its city." },
+  { el: () => $("viewSeg"), wide: true, title: "Board view", text: "Switch to Board and drag jobs between stages as you progress." },
+  { title: "You're all set", text: "Good luck with your applications! You can replay this tour from the bottom of the page.", last: true },
+];
+let tourI = -1, tourSteps = [], tourT = null;
+function tourPlace(instant) {
+  if (tourI < 0) return;
+  const s = tourSteps[tourI], el = s.el && s.el(), tip = $("tourTip"), spot = $("tourSpot"), pad = 8;
+  const tw = tip.offsetWidth, th = tip.offsetHeight, W = innerWidth, H = innerHeight;
+  let sp, tp;
+  if (el) {
+    const r = el.getBoundingClientRect();
+    sp = { left: r.left - pad, top: r.top - pad, width: r.width + pad * 2, height: r.height + pad * 2 };
+    // the tip goes under the target if it fits, else above it, else at the bottom of the screen
+    const below = r.bottom + pad + 12, above = r.top - pad - 12 - th;
+    tp = { left: Math.min(Math.max(16, r.left + r.width / 2 - tw / 2), W - tw - 16), top: below + th < H - 12 ? below : above > 12 ? above : H - th - 12 };
+  } else { sp = { left: W / 2, top: H / 2, width: 0, height: 0 }; tp = { left: (W - tw) / 2, top: (H - th) / 2 }; }
+  spot.classList.toggle("none", !el);
+  const d = instant || reduce ? 0 : .45;
+  GS.to(spot, { ...sp, duration: d, ease: "power3.out", overwrite: true });
+  GS.to(tip, { ...tp, duration: d, ease: "power3.out", overwrite: "auto" });
+}
+function tourShow(i) {
+  tourI = i;
+  const s = tourSteps[i], el = s.el && s.el();
+  $("tourStep").textContent = `Step ${i + 1} of ${tourSteps.length}`;
+  $("tourTitle").textContent = s.title;
+  $("tourText").textContent = typeof s.text === "function" ? s.text() : s.text;
+  $("tourBack").hidden = i === 0;
+  $("tourNext").textContent = i === 0 ? "Start tour" : s.last ? "Start exploring" : "Next";
+  $("tourDots").innerHTML = tourSteps.map((_, k) => `<i${k === i ? ' class="on"' : ""}></i>`).join("");
+  if (!reduce) GS.fromTo("#tourTip > *", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: .3, stagger: .03, ease: "power2.out", overwrite: true });
+  clearTimeout(tourT); tourT = null;
+  if (el) {
+    el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+    tourT = setTimeout(() => { tourT = null; tourPlace(); }, reduce ? 0 : 450); // after the smooth scroll settles
+  } else tourPlace();
+  $("tourNext").focus({ preventScroll: true });
+}
+function tourStart() {
+  if (!GS || !loaded || drawerId || tourI >= 0) return;
+  closeSheet(true);
+  tourSteps = STEPS.filter(s => !(s.wide && mqM.matches)); // the board switch lives in the Filters sheet on phones
+  $("tour").hidden = false;
+  if (!reduce) GS.fromTo("#tour", { opacity: 0 }, { opacity: 1, duration: .3 });
+  tourShow(0);
+}
+function tourEnd() {
+  tourI = -1; clearTimeout(tourT); tourT = null;
+  try { localStorage.setItem(TOUR_KEY, "1"); } catch (e) {}
+  if (reduce) $("tour").hidden = true;
+  else GS.to("#tour", { opacity: 0, duration: .25, onComplete: () => { $("tour").hidden = true; } });
+}
+// first visit only (also not for people who already dismissed the old welcome card); ?tour forces it
+function maybeTour() {
+  let seen = true;
+  try { seen = !!(localStorage.getItem(TOUR_KEY) || localStorage.getItem("jt-welcome")); } catch (e) {}
+  if (!seen || new URLSearchParams(location.search).has("tour")) setTimeout(tourStart, reduce ? 200 : 1600);
+}
+$("tourNext").addEventListener("click", () => tourSteps[tourI]?.last ? tourEnd() : tourShow(tourI + 1));
+$("tourBack").addEventListener("click", () => { if (tourI > 0) tourShow(tourI - 1); });
+$("tourSkip").addEventListener("click", tourEnd);
+$("tourReplay").addEventListener("click", () => { scrollTo({ top: 0 }); tourStart(); });
+addEventListener("keydown", e => {
+  if (tourI < 0) return;
+  if (e.key === "Escape") tourEnd();
+  else if (e.key === "ArrowRight") $("tourNext").click();
+  else if (e.key === "ArrowLeft") $("tourBack").click();
+});
+addEventListener("resize", () => tourPlace(true));
+addEventListener("scroll", () => { if (tourI >= 0 && !tourT) tourPlace(true); }, { passive: true });
 
 // ---------- phone layout: Filters bottom sheet, back button, swipe gestures ----------
 const mqM = matchMedia("(max-width: 760px)");
